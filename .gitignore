@@ -26,6 +26,9 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
+# local agent/editor tool state (machine-specific, never shared)
+.claude/
+
 # test artefacts
 playwright-report/
 test-results/
