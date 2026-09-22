@@ -74,8 +74,17 @@ export function requireAllowedFile(file: Express.Multer.File | undefined, allowe
   return { file, detected };
 }
 
-/** A safe display name for downloads (no path components or control characters). */
+/**
+ * A safe display name for downloads (no path components or control characters).
+ *
+ * Both separators are stripped explicitly rather than with path.basename(),
+ * which follows the platform it runs on: on Linux (Docker, CI, any Unix host)
+ * it does not treat "\" as a separator, so a Windows-style upload name such as
+ * "C:\Users\me\report final.pdf" kept its directories and merely had them
+ * rewritten to underscores. The uploader's platform is not the server's, so the
+ * leading directories are removed for either separator everywhere.
+ */
 export function sanitizeFileName(name: string): string {
-  const base = path.basename(name).replace(/[^\w.\- ()]/g, '_').trim();
+  const base = (name.split(/[\\/]/).pop() ?? '').replace(/[^\w.\- ()]/g, '_').trim();
   return (base || 'file').slice(0, 120);
 }
