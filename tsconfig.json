@@ -3,7 +3,12 @@
     "target": "ES2022",
     "lib": ["ES2023"],
     "module": "CommonJS",
-    "moduleResolution": "Node",
+    "moduleResolution": "Node10",
+    // "Node10" (classic CommonJS resolution) is slated for removal in TS 7.0, but this
+    // project compiles to CommonJS and runs on Node directly, so "bundler"/"nodenext" -
+    // which assume an ESM-oriented setup - are not a drop-in replacement. Acknowledging
+    // the deprecation rather than silently masking it; revisit if the project moves to ESM.
+    "ignoreDeprecations": "5.0",
     "esModuleInterop": true,
     "strict": true,
     "noImplicitReturns": true,
