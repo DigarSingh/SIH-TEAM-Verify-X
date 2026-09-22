@@ -1,0 +1,124 @@
+# Capacity Connect on one host: PostgreSQL, the API and the web app (nginx).
+#
+#   cp .env.example .env            # then set POSTGRES_PASSWORD and JWT_SECRET (`npm run setup` generates a JWT_SECRET)
+#   docker compose up -d --build
+#   docker compose run --rm api node dist/cli/create-admin.js --email you@example.gov.in --name "Your Name"
+#   open http://localhost:8080      # sign in with the temporary password the command printed
+#
+# Compose reads .env for the ${...} values below. Only the variables listed here reach the containers (the .env of a
+# development machine is NOT copied in), and production-only choices are fixed on purpose: NODE_ENV=production and
+# secure cookies. Browsers accept Secure cookies on http://localhost (Chrome, Edge, Firefox; not Safari), so a local trial
+# works; a real deployment terminates TLS in front of the web container (see docs/deployment.md).
+#
+# NOTE: this file could not be run where it was written (no Docker there). Treat the first `docker compose up` as a test.
+name: capacity-connect
+
+x-api-build: &api-build
+  context: .
+  dockerfile: backend/Dockerfile
+
+x-database-url: &database-url postgresql://${POSTGRES_USER:-capacity}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:-capacity_connect}?schema=public
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-capacity}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-capacity_connect}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # One-off: applies the committed migrations, then exits. The API starts only after it succeeded.
+  migrate:
+    build: *api-build
+    image: capacity-connect-api
+    working_dir: /app
+    command: ["npx", "prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: *database-url
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build: *api-build
+    image: capacity-connect-api
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      TRUST_PROXY: "1" # the nginx container is one proxy hop; add one more if a load balancer sits in front of it
+      DATABASE_URL: *database-url
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env (npm run setup generates one)}
+      ACCESS_TOKEN_TTL_MINUTES: ${ACCESS_TOKEN_TTL_MINUTES:-15}
+      REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-7}
+      COOKIE_SECURE: "true"
+      COOKIE_SAMESITE: lax
+      FRONTEND_URL: ${PUBLIC_URL:-http://localhost:8080}
+      REGISTRATION_REQUIRES_APPROVAL: ${REGISTRATION_REQUIRES_APPROVAL:-true}
+      ALLOWED_EMAIL_DOMAINS: ${ALLOWED_EMAIL_DOMAINS:-}
+      MAX_FAILED_LOGINS: ${MAX_FAILED_LOGINS:-5}
+      LOCKOUT_MINUTES: ${LOCKOUT_MINUTES:-15}
+      ARGON2_MEMORY_KIB: ${ARGON2_MEMORY_KIB:-19456}
+      ARGON2_TIME_COST: ${ARGON2_TIME_COST:-2}
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+      STORAGE_LOCAL_DIR: /data/uploads
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-}
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-capacity-connect}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-}
+      STORAGE_FORCE_PATH_STYLE: ${STORAGE_FORCE_PATH_STYLE:-true}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
+      CERTIFICATE_ISSUER: ${CERTIFICATE_ISSUER:-India Meteorological Department, Ministry of Earth Sciences}
+      CERTIFICATE_ID_PREFIX: ${CERTIFICATE_ID_PREFIX:-CC}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-900000}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-1000}
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-30}
+      ENABLE_SCHEDULER: "true" # one API instance; safe with several too (a database lock lets only one run the job)
+      # Optional AI features: leave the key of the chosen provider empty to keep them off.
+      AI_PROVIDER: ${AI_PROVIDER:-openai}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+      AI_REFUSAL_FALLBACKS: ${AI_REFUSAL_FALLBACKS:-true}
+      AI_RATE_LIMIT_PER_HOUR: ${AI_RATE_LIMIT_PER_HOUR:-30}
+      AI_MAX_CONTEXT_CHARS: ${AI_MAX_CONTEXT_CHARS:-120000}
+    volumes:
+      - uploads:/data/uploads
+    # The API is reached through the web container. Publish the port only if you need direct access:
+    # ports: ["4000:4000"]
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
+        VITE_SHOW_DEMO_ACCOUNTS: ${VITE_SHOW_DEMO_ACCOUNTS:-false}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_UPSTREAM: api:4000
+      CSP_EXTRA_ORIGINS: ${CSP_EXTRA_ORIGINS:-} # e.g. the S3 bucket origin, see .env.example
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  pgdata:
+  uploads:

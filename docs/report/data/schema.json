@@ -1,0 +1,411 @@
+{
+ "models": [
+  {
+   "name": "Department",
+   "fields": 10
+  },
+  {
+   "name": "Role",
+   "fields": 10
+  },
+  {
+   "name": "User",
+   "fields": 55
+  },
+  {
+   "name": "Session",
+   "fields": 11
+  },
+  {
+   "name": "ProfessionalProfile",
+   "fields": 11
+  },
+  {
+   "name": "Qualification",
+   "fields": 8
+  },
+  {
+   "name": "WorkExperience",
+   "fields": 10
+  },
+  {
+   "name": "ProfileSkill",
+   "fields": 6
+  },
+  {
+   "name": "Competency",
+   "fields": 20
+  },
+  {
+   "name": "CompetencyDecayPolicy",
+   "fields": 14
+  },
+  {
+   "name": "PracticalScenario",
+   "fields": 12
+  },
+  {
+   "name": "PracticalScenarioStep",
+   "fields": 10
+  },
+  {
+   "name": "PracticalScenarioOption",
+   "fields": 8
+  },
+  {
+   "name": "PracticalResponse",
+   "fields": 12
+  },
+  {
+   "name": "ReadinessEvent",
+   "fields": 16
+  },
+  {
+   "name": "ReadinessRequirement",
+   "fields": 7
+  },
+  {
+   "name": "ReadinessEventDepartment",
+   "fields": 4
+  },
+  {
+   "name": "ReadinessAssignment",
+   "fields": 15
+  },
+  {
+   "name": "Mentorship",
+   "fields": 15
+  },
+  {
+   "name": "CompetencyPracticeRecord",
+   "fields": 15
+  },
+  {
+   "name": "RoleCompetency",
+   "fields": 9
+  },
+  {
+   "name": "EmployeeCompetency",
+   "fields": 10
+  },
+  {
+   "name": "CompetencyHistory",
+   "fields": 16
+  },
+  {
+   "name": "Course",
+   "fields": 30
+  },
+  {
+   "name": "CourseCompetency",
+   "fields": 8
+  },
+  {
+   "name": "CoursePrerequisite",
+   "fields": 4
+  },
+  {
+   "name": "Module",
+   "fields": 11
+  },
+  {
+   "name": "LearningMaterial",
+   "fields": 15
+  },
+  {
+   "name": "Enrollment",
+   "fields": 17
+  },
+  {
+   "name": "ModuleProgress",
+   "fields": 6
+  },
+  {
+   "name": "Assessment",
+   "fields": 23
+  },
+  {
+   "name": "Question",
+   "fields": 12
+  },
+  {
+   "name": "QuestionOption",
+   "fields": 6
+  },
+  {
+   "name": "AssessmentAttempt",
+   "fields": 28
+  },
+  {
+   "name": "AssessmentAnswer",
+   "fields": 8
+  },
+  {
+   "name": "Certificate",
+   "fields": 23
+  },
+  {
+   "name": "Feedback",
+   "fields": 10
+  },
+  {
+   "name": "TrainerEvaluation",
+   "fields": 20
+  },
+  {
+   "name": "Notification",
+   "fields": 12
+  },
+  {
+   "name": "Announcement",
+   "fields": 12
+  },
+  {
+   "name": "Achievement",
+   "fields": 8
+  },
+  {
+   "name": "AuditLog",
+   "fields": 10
+  },
+  {
+   "name": "SystemSetting",
+   "fields": 4
+  },
+  {
+   "name": "ARModule",
+   "fields": 28
+  },
+  {
+   "name": "ARComponent",
+   "fields": 12
+  },
+  {
+   "name": "ARTask",
+   "fields": 13
+  },
+  {
+   "name": "ARPracticalAttempt",
+   "fields": 21
+  },
+  {
+   "name": "ARTaskResponse",
+   "fields": 10
+  }
+ ],
+ "enums": [
+  {
+   "name": "UserRole",
+   "values": [
+    "TRAINEE",
+    "TRAINER",
+    "ADMIN"
+   ]
+  },
+  {
+   "name": "UserStatus",
+   "values": [
+    "PENDING",
+    "ACTIVE",
+    "REJECTED",
+    "SUSPENDED"
+   ]
+  },
+  {
+   "name": "CourseStatus",
+   "values": [
+    "DRAFT",
+    "PUBLISHED",
+    "ARCHIVED"
+   ]
+  },
+  {
+   "name": "Difficulty",
+   "values": [
+    "BEGINNER",
+    "INTERMEDIATE",
+    "ADVANCED"
+   ]
+  },
+  {
+   "name": "MaterialType",
+   "values": [
+    "VIDEO",
+    "DOCUMENT",
+    "LINK",
+    "TEXT"
+   ]
+  },
+  {
+   "name": "EnrollmentStatus",
+   "values": [
+    "ENROLLED",
+    "IN_PROGRESS",
+    "ASSESSMENT_PENDING",
+    "COMPLETED",
+    "CERTIFIED",
+    "WITHDRAWN"
+   ]
+  },
+  {
+   "name": "QuestionType",
+   "values": [
+    "SINGLE",
+    "MULTIPLE"
+   ]
+  },
+  {
+   "name": "AttemptStatus",
+   "values": [
+    "IN_PROGRESS",
+    "SUBMITTED",
+    "EXPIRED"
+   ]
+  },
+  {
+   "name": "CertificateStatus",
+   "values": [
+    "VALID",
+    "REVOKED"
+   ]
+  },
+  {
+   "name": "EvaluationType",
+   "values": [
+    "EVALUATION",
+    "PRACTICAL"
+   ]
+  },
+  {
+   "name": "CompetencySource",
+   "values": [
+    "BASELINE",
+    "ASSESSMENT",
+    "TRAINER_EVALUATION",
+    "PRACTICAL",
+    "ADMIN_ADJUSTMENT"
+   ]
+  },
+  {
+   "name": "CareerLevel",
+   "values": [
+    "JUNIOR",
+    "MID",
+    "SENIOR",
+    "PRINCIPAL"
+   ]
+  },
+  {
+   "name": "MentorshipStatus",
+   "values": [
+    "NOT_STARTED",
+    "ACTIVE",
+    "COMPLETED",
+    "CANCELLED"
+   ]
+  },
+  {
+   "name": "ARModuleKind",
+   "values": [
+    "FULL_LAB",
+    "REFRESHER"
+   ]
+  },
+  {
+   "name": "ARTaskPhase",
+   "values": [
+    "TRAINING",
+    "ASSESSMENT"
+   ]
+  },
+  {
+   "name": "ARTaskType",
+   "values": [
+    "IDENTIFY",
+    "INSPECT"
+   ]
+  },
+  {
+   "name": "ARAttemptStatus",
+   "values": [
+    "IN_PROGRESS",
+    "COMPLETED",
+    "ABANDONED"
+   ]
+  },
+  {
+   "name": "ScenarioStepType",
+   "values": [
+    "IDENTIFY",
+    "INTERPRET",
+    "ACTION"
+   ]
+  },
+  {
+   "name": "HazardType",
+   "values": [
+    "MONSOON",
+    "CYCLONE",
+    "HEATWAVE",
+    "FLOOD",
+    "WINTER",
+    "THUNDERSTORM",
+    "OTHER"
+   ]
+  },
+  {
+   "name": "ReadinessEventStatus",
+   "values": [
+    "PLANNED",
+    "ACTIVE",
+    "COMPLETED",
+    "CANCELLED"
+   ]
+  },
+  {
+   "name": "ReadinessAssignmentStatus",
+   "values": [
+    "ASSIGNED",
+    "IN_PROGRESS",
+    "COMPLETED",
+    "WAIVED"
+   ]
+  },
+  {
+   "name": "PracticeSource",
+   "values": [
+    "COURSE_COMPLETION",
+    "ASSESSMENT",
+    "TRAINER_EVALUATION",
+    "OPERATIONAL_DUTY",
+    "REFRESHER",
+    "MANUAL_ENTRY"
+   ]
+  },
+  {
+   "name": "NotificationType",
+   "values": [
+    "COURSE_RECOMMENDATION",
+    "COURSE_ENROLLMENT",
+    "ASSESSMENT_DEADLINE",
+    "ASSESSMENT_RESULT",
+    "CERTIFICATE_ISSUED",
+    "TRAINING_REMINDER",
+    "ANNOUNCEMENT",
+    "COMPETENCY_UPDATE",
+    "EVALUATION_RECEIVED",
+    "ACHIEVEMENT",
+    "ACCOUNT"
+   ]
+  },
+  {
+   "name": "AnnouncementAudience",
+   "values": [
+    "ALL",
+    "TRAINEES",
+    "TRAINERS",
+    "ADMINS"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,23 @@
+# Keeps the Docker build context small and, above all, keeps secrets and local state out of images.
+.git
+.github
+.claude
+.vscode
+.idea
+
+# secrets and local configuration: images are configured through environment variables at run time
+.env
+.env.*
+!.env.example
+
+# dependencies and build output are produced inside the image
+**/node_modules
+**/dist
+**/coverage
+**/*.tsbuildinfo
+
+# local infrastructure and user data
+.pgdata
+uploads
+docs
+*.log

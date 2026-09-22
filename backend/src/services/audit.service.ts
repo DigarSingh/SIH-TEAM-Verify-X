@@ -1,0 +1,122 @@
+import type { Request } from 'express';
+import type { Prisma } from '@prisma/client';
+import { logger } from '../config/logger';
+import { clientInfo } from '../lib/http';
+import { prisma, type Db } from '../lib/prisma';
+
+/** Catalogue of audited actions (also used to populate the admin filter). */
+export const AuditActions = {
+  USER_REGISTERED: 'USER_REGISTERED',
+  USER_LOGIN: 'USER_LOGIN',
+  USER_LOGIN_FAILED: 'USER_LOGIN_FAILED',
+  USER_LOCKED: 'USER_LOCKED',
+  USER_LOGOUT: 'USER_LOGOUT',
+  SESSION_REUSE_DETECTED: 'SESSION_REUSE_DETECTED',
+  PASSWORD_CHANGED: 'PASSWORD_CHANGED',
+  USER_CREATED: 'USER_CREATED',
+  USER_UPDATED: 'USER_UPDATED',
+  USER_APPROVED: 'USER_APPROVED',
+  USER_REJECTED: 'USER_REJECTED',
+  USER_ROLE_CHANGED: 'USER_ROLE_CHANGED',
+  USER_STATUS_CHANGED: 'USER_STATUS_CHANGED',
+  USER_PASSWORD_RESET: 'USER_PASSWORD_RESET',
+  USER_DELETED: 'USER_DELETED',
+  DEPARTMENT_CREATED: 'DEPARTMENT_CREATED',
+  DEPARTMENT_UPDATED: 'DEPARTMENT_UPDATED',
+  DEPARTMENT_DELETED: 'DEPARTMENT_DELETED',
+  ROLE_CREATED: 'ROLE_CREATED',
+  ROLE_UPDATED: 'ROLE_UPDATED',
+  ROLE_DELETED: 'ROLE_DELETED',
+  ROLE_COMPETENCY_MAPPED: 'ROLE_COMPETENCY_MAPPED',
+  ROLE_COMPETENCY_UNMAPPED: 'ROLE_COMPETENCY_UNMAPPED',
+  COMPETENCY_CREATED: 'COMPETENCY_CREATED',
+  COMPETENCY_UPDATED: 'COMPETENCY_UPDATED',
+  COMPETENCY_DELETED: 'COMPETENCY_DELETED',
+  COMPETENCY_ADJUSTED: 'COMPETENCY_ADJUSTED',
+  COURSE_CREATED: 'COURSE_CREATED',
+  COURSE_UPDATED: 'COURSE_UPDATED',
+  COURSE_PUBLISHED: 'COURSE_PUBLISHED',
+  COURSE_UNPUBLISHED: 'COURSE_UNPUBLISHED',
+  COURSE_ARCHIVED: 'COURSE_ARCHIVED',
+  COURSE_DELETED: 'COURSE_DELETED',
+  MODULE_CREATED: 'MODULE_CREATED',
+  MODULE_UPDATED: 'MODULE_UPDATED',
+  MODULE_DELETED: 'MODULE_DELETED',
+  MATERIAL_ADDED: 'MATERIAL_ADDED',
+  MATERIAL_UPDATED: 'MATERIAL_UPDATED',
+  MATERIAL_DELETED: 'MATERIAL_DELETED',
+  COURSE_ENROLLED: 'COURSE_ENROLLED',
+  ENROLLMENT_WITHDRAWN: 'ENROLLMENT_WITHDRAWN',
+  MODULE_COMPLETED: 'MODULE_COMPLETED',
+  ASSESSMENT_CREATED: 'ASSESSMENT_CREATED',
+  ASSESSMENT_UPDATED: 'ASSESSMENT_UPDATED',
+  ASSESSMENT_DELETED: 'ASSESSMENT_DELETED',
+  ASSESSMENT_STARTED: 'ASSESSMENT_STARTED',
+  ASSESSMENT_SUBMITTED: 'ASSESSMENT_SUBMITTED',
+  CERTIFICATE_ISSUED: 'CERTIFICATE_ISSUED',
+  CERTIFICATE_REVOKED: 'CERTIFICATE_REVOKED',
+  CERTIFICATE_REINSTATED: 'CERTIFICATE_REINSTATED',
+  EVALUATION_CREATED: 'EVALUATION_CREATED',
+  ANNOUNCEMENT_CREATED: 'ANNOUNCEMENT_CREATED',
+  ANNOUNCEMENT_UPDATED: 'ANNOUNCEMENT_UPDATED',
+  ANNOUNCEMENT_DELETED: 'ANNOUNCEMENT_DELETED',
+  ENGINE_CONFIG_UPDATED: 'ENGINE_CONFIG_UPDATED',
+  DECAY_POLICY_UPDATED: 'DECAY_POLICY_UPDATED',
+  COMPETENCY_PRACTICE_RECORDED: 'COMPETENCY_PRACTICE_RECORDED',
+  MENTORSHIP_CREATED: 'MENTORSHIP_CREATED',
+  MENTORSHIP_UPDATED: 'MENTORSHIP_UPDATED',
+  READINESS_EVENT_CREATED: 'READINESS_EVENT_CREATED',
+  READINESS_EVENT_UPDATED: 'READINESS_EVENT_UPDATED',
+  READINESS_EVENT_DELETED: 'READINESS_EVENT_DELETED',
+  READINESS_PREPARATION_ASSIGNED: 'READINESS_PREPARATION_ASSIGNED',
+  AR_PRACTICAL_STARTED: 'AR_PRACTICAL_STARTED',
+  AR_PRACTICAL_SUBMITTED: 'AR_PRACTICAL_SUBMITTED',
+  REMINDERS_SENT: 'REMINDERS_SENT',
+  AI_ASSISTANT_QUERY: 'AI_ASSISTANT_QUERY',
+  AI_QUIZ_GENERATED: 'AI_QUIZ_GENERATED',
+  AI_PLAN_GENERATED: 'AI_PLAN_GENERATED',
+  AI_SEARCH: 'AI_SEARCH',
+  AI_FORECAST_SUMMARISED: 'AI_FORECAST_SUMMARISED',
+} as const;
+
+export type AuditAction = (typeof AuditActions)[keyof typeof AuditActions];
+
+export interface AuditContext {
+  userId?: string | null;
+  ip?: string | null;
+  userAgent?: string | null;
+}
+
+export interface AuditEntry {
+  action: AuditAction;
+  entityType: string;
+  entityId?: string | null;
+  metadata?: Prisma.InputJsonValue;
+}
+
+/** Builds the audit context (actor, IP, user agent) from an authenticated request. */
+export function auditContext(req: Request): AuditContext {
+  return { userId: req.user?.id ?? null, ...clientInfo(req) };
+}
+
+/**
+ * Appends an audit-log row. An audit failure must never break the business
+ * operation it describes, so errors are logged and swallowed here.
+ */
+export async function recordAudit(ctx: AuditContext, entry: AuditEntry, db: Db = prisma): Promise<void> {
+  try {
+    await db.auditLog.create({
+      data: {
+        userId: ctx.userId ?? null,
+        action: entry.action,
+        entityType: entry.entityType,
+        entityId: entry.entityId ?? null,
+        metadata: entry.metadata,
+        ipAddress: ctx.ip ?? null,
+        userAgent: ctx.userAgent ?? null,
+      },
+    });
+  } catch (error) {
+    logger.error({ err: error, action: entry.action }, 'Failed to write audit log');
+  }
+}

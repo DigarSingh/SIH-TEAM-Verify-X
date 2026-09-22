@@ -1,0 +1,744 @@
+/*
+ * Print stylesheet for the Capacity Connect project report.
+ *
+ * Target: A4, printed one side, bound on the left. Everything here is tuned for
+ * paper rather than a screen: measured line length, no hairlines that vanish at
+ * 300 dpi, and explicit break control so a figure never splits across a page.
+ */
+
+@page {
+  size: A4;
+  margin: 22mm 18mm 20mm 20mm;
+}
+
+:root {
+  --ink: #12181f;
+  --ink-soft: #3d4a57;
+  --ink-faint: #67757f;
+  --rule: #c9d3da;
+  --rule-soft: #e3eaef;
+  --navy: #10314f;
+  --sky: #1667a6;
+  --sky-tint: #eef5fb;
+  --teal: #0f6f68;
+  --amber: #8a5a05;
+  --amber-tint: #fdf6e7;
+  --red: #9b2c22;
+  --green: #1c6b3f;
+  --grey-tint: #f4f7f9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 10.5pt;
+}
+
+body {
+  margin: 0;
+  font-family: 'Charter', 'Georgia', 'Cambria', serif;
+  color: var(--ink);
+  line-height: 1.55;
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  orphans: 3;
+  widows: 3;
+}
+
+p {
+  margin: 0 0 0.62em;
+}
+
+strong {
+  font-weight: 700;
+}
+
+em {
+  font-style: italic;
+}
+
+code {
+  font-family: 'Consolas', 'DejaVu Sans Mono', 'Courier New', monospace;
+  font-size: 0.86em;
+  background: var(--grey-tint);
+  padding: 0.05em 0.28em;
+  border-radius: 2px;
+  border: 0.4pt solid var(--rule-soft);
+  white-space: nowrap;
+  hyphens: none;
+}
+
+/* ------------------------------------------------------------------ cover */
+
+.cover {
+  height: calc(297mm - 42mm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: left;
+  break-after: page;
+}
+
+.cover-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1.6pt solid var(--navy);
+  padding-bottom: 6mm;
+}
+
+.crest {
+  display: flex;
+  gap: 4mm;
+  align-items: center;
+}
+
+.crest-mark {
+  width: 15mm;
+  height: 15mm;
+  border: 1.4pt solid var(--navy);
+  border-radius: 50%;
+  color: var(--navy);
+  font-family: 'Segoe UI', sans-serif;
+  font-weight: 700;
+  font-size: 15pt;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.crest-org {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 11pt;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.crest-sub {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 9pt;
+  color: var(--ink-soft);
+}
+
+.cover-ps {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 9pt;
+  color: var(--ink-soft);
+  text-align: right;
+  padding-top: 2mm;
+}
+
+.cover-main h1 {
+  font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+  font-size: 40pt;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  color: var(--navy);
+  margin: 0 0 3mm;
+  font-weight: 700;
+}
+
+.tagline {
+  font-size: 15pt;
+  font-style: italic;
+  color: var(--sky);
+  margin: 0 0 2mm;
+}
+
+.cover-sub {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 11.5pt;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.cover-rule {
+  height: 1pt;
+  background: var(--rule);
+  margin: 7mm 0 5mm;
+}
+
+.cover-meta,
+.cover-team {
+  margin: 0;
+  display: grid;
+  gap: 1.6mm 6mm;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 9.5pt;
+}
+
+.cover-meta > div,
+.cover-team > div {
+  display: grid;
+  grid-template-columns: 42mm 1fr;
+  gap: 3mm;
+}
+
+.cover-meta dt,
+.cover-team dt {
+  color: var(--ink-faint);
+  font-weight: 600;
+}
+
+.cover-meta dd,
+.cover-team dd {
+  margin: 0;
+  color: var(--ink);
+}
+
+.cover-foot {
+  border-top: 1pt solid var(--rule);
+  padding-top: 5mm;
+}
+
+.cover-note {
+  margin-top: 5mm;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 8pt;
+  color: var(--ink-faint);
+  font-style: italic;
+  text-align: left;
+}
+
+.ph {
+  display: inline-block;
+  min-width: 55mm;
+  border-bottom: 0.8pt dotted var(--sky);
+  color: var(--sky);
+  font-style: italic;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 0.92em;
+}
+
+/* ------------------------------------------------------- front matter */
+
+.frontmatter {
+  break-before: page;
+}
+
+.fm-title {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 19pt;
+  color: var(--navy);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  margin: 0 0 3mm;
+  font-weight: 600;
+}
+
+.fm-title::after {
+  content: '';
+  display: block;
+  width: 26mm;
+  height: 1.6pt;
+  background: var(--sky);
+  margin: 3mm auto 7mm;
+}
+
+.cert-names {
+  margin: 5mm 0;
+  text-align: center;
+  font-size: 12pt;
+}
+
+.sign-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8mm;
+  margin-top: 22mm;
+}
+
+.sign-row.two {
+  justify-content: space-around;
+}
+
+.sign {
+  flex: 1;
+  text-align: center;
+}
+
+.sign-line {
+  border-top: 0.8pt solid var(--ink-soft);
+  margin-bottom: 2mm;
+}
+
+.sign-role {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 9pt;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.sign-name {
+  font-size: 8.5pt;
+  margin-top: 1.5mm;
+}
+
+/* -------------------------------------------------------------- chapters */
+
+.chapter {
+  break-before: page;
+}
+
+.chhead {
+  border-bottom: 1.4pt solid var(--navy);
+  padding-bottom: 4mm;
+  margin-bottom: 7mm;
+  break-after: avoid;
+}
+
+.chno {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sky);
+  margin-bottom: 2mm;
+}
+
+.chhead h1 {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 22pt;
+  line-height: 1.18;
+  color: var(--navy);
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-align: left;
+}
+
+h2 {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 13pt;
+  color: var(--navy);
+  margin: 7mm 0 2.5mm;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: left;
+  break-after: avoid;
+  break-inside: avoid;
+}
+
+h2 .secno {
+  color: var(--sky);
+  margin-right: 2mm;
+}
+
+h3 {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 11pt;
+  color: var(--teal);
+  margin: 5mm 0 2mm;
+  font-weight: 700;
+  text-align: left;
+  break-after: avoid;
+  break-inside: avoid;
+}
+
+ul,
+ol {
+  margin: 0 0 0.7em;
+  padding-left: 6.5mm;
+}
+
+li {
+  margin-bottom: 0.32em;
+}
+
+/* ------------------------------------------------------------- callouts */
+
+.note,
+.warn {
+  border-left: 2.4pt solid var(--sky);
+  background: var(--sky-tint);
+  padding: 3mm 4mm;
+  margin: 3.5mm 0;
+  font-size: 0.95em;
+  break-inside: avoid;
+}
+
+.warn {
+  border-left-color: var(--amber);
+  background: var(--amber-tint);
+}
+
+.note strong,
+.warn strong {
+  font-family: 'Segoe UI', sans-serif;
+  color: var(--navy);
+  display: block;
+  margin-bottom: 1mm;
+  font-size: 0.95em;
+}
+
+.warn strong {
+  color: var(--amber);
+}
+
+.prewrap {
+  margin: 3.5mm 0;
+  break-inside: avoid;
+}
+
+.prelabel {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 7.5pt;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: var(--grey-tint);
+  border: 0.5pt solid var(--rule);
+  border-bottom: none;
+  padding: 1mm 3mm;
+}
+
+pre {
+  margin: 0;
+  font-family: 'Consolas', 'DejaVu Sans Mono', 'Courier New', monospace;
+  font-size: 8.6pt;
+  line-height: 1.45;
+  background: var(--grey-tint);
+  border: 0.5pt solid var(--rule);
+  padding: 3mm;
+  white-space: pre-wrap;
+  text-align: left;
+  hyphens: none;
+  overflow-wrap: break-word;
+}
+
+/* ---------------------------------------------------------------- chains */
+
+.chain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6mm;
+  margin: 4mm 0;
+  break-inside: avoid;
+}
+
+.chain .chip {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 8pt;
+  background: var(--sky-tint);
+  border: 0.5pt solid var(--sky);
+  color: var(--navy);
+  border-radius: 2mm;
+  padding: 1.1mm 2.4mm;
+  white-space: nowrap;
+}
+
+.chain .to,
+.chain .down {
+  color: var(--sky);
+  font-size: 9pt;
+}
+
+/* ---------------------------------------------------------------- tables */
+
+.tablewrap {
+  margin: 4mm 0 5mm;
+  break-inside: auto;
+}
+
+.tblcap {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 8.4pt;
+  color: var(--ink-soft);
+  margin-bottom: 1.6mm;
+  text-align: left;
+  break-after: avoid;
+}
+
+.tblno {
+  font-weight: 700;
+  color: var(--navy);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 8.4pt;
+  line-height: 1.38;
+  text-align: left;
+}
+
+thead {
+  display: table-header-group;
+}
+
+th {
+  background: var(--navy);
+  color: #fff;
+  font-weight: 600;
+  padding: 1.7mm 2.2mm;
+  text-align: left;
+  border: 0.5pt solid var(--navy);
+  vertical-align: bottom;
+}
+
+td {
+  padding: 1.5mm 2.2mm;
+  border: 0.5pt solid var(--rule);
+  vertical-align: top;
+  text-align: left;
+  hyphens: none;
+}
+
+tbody tr:nth-child(even) td {
+  background: var(--grey-tint);
+}
+
+tr {
+  break-inside: avoid;
+}
+
+table.narrow {
+  width: auto;
+  min-width: 60%;
+}
+
+table.routes td,
+table.schema td,
+table.register td {
+  font-size: 7.9pt;
+  padding: 1.1mm 1.8mm;
+}
+
+table.routes code,
+table.schema code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.95em;
+}
+
+/* ----------------------------------------------------------------- pills */
+
+.pill {
+  display: inline-block;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 7pt;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 0.5mm 1.8mm;
+  border-radius: 1.2mm;
+  border: 0.5pt solid;
+  white-space: nowrap;
+}
+
+.pill.ok {
+  color: var(--green);
+  border-color: var(--green);
+  background: #eaf5ee;
+}
+
+.pill.partial {
+  color: var(--amber);
+  border-color: var(--amber);
+  background: var(--amber-tint);
+}
+
+.pill.sim {
+  color: var(--sky);
+  border-color: var(--sky);
+  background: var(--sky-tint);
+}
+
+.pill.planned {
+  color: var(--ink-faint);
+  border-color: var(--ink-faint);
+  background: var(--grey-tint);
+}
+
+.pill.unverified {
+  color: var(--red);
+  border-color: var(--red);
+  background: #fbeeec;
+}
+
+/* --------------------------------------------------------------- figures */
+
+.fig {
+  margin: 5mm 0 6mm;
+  break-inside: avoid;
+  text-align: center;
+}
+
+.fig img {
+  max-width: 100%;
+  height: auto;
+  border: 0.6pt solid var(--rule);
+  background: #fff;
+}
+
+.fig.shot img {
+  max-height: 108mm;
+  box-shadow: 0 0 0 0.6pt var(--rule);
+}
+
+.fig.diagram img {
+  max-height: 168mm;
+  border-color: var(--rule-soft);
+}
+
+.fig.half img {
+  max-height: 62mm;
+}
+
+.fig figcaption {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 8.4pt;
+  color: var(--ink-soft);
+  margin-top: 2mm;
+  text-align: left;
+  line-height: 1.4;
+}
+
+.figno {
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.figexp {
+  font-size: 8.6pt;
+  color: var(--ink-soft);
+  text-align: justify;
+  margin-top: 1.6mm;
+  padding-left: 3mm;
+  border-left: 1.4pt solid var(--rule-soft);
+  line-height: 1.45;
+}
+
+.figpair {
+  display: flex;
+  gap: 5mm;
+  break-inside: avoid;
+  margin: 5mm 0;
+}
+
+.figpair .fig {
+  flex: 1;
+  margin: 0;
+  min-width: 0;
+}
+
+/* -------------------------------------------------- contents and listings */
+
+.contents {
+  break-before: page;
+}
+
+.toc {
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 9.3pt;
+  margin-top: 2mm;
+}
+
+.toc-row {
+  display: flex;
+  align-items: baseline;
+  gap: 2mm;
+  padding: 0.75mm 0;
+  break-inside: avoid;
+}
+
+.toc-row .t-num {
+  flex: 0 0 auto;
+  color: var(--sky);
+  font-weight: 700;
+  min-width: 13mm;
+}
+
+.toc-row .t-title {
+  flex: 0 0 auto;
+  max-width: 132mm;
+}
+
+.toc-row .t-dots {
+  flex: 1 1 auto;
+  border-bottom: 0.5pt dotted var(--rule);
+  transform: translateY(-1mm);
+  min-width: 6mm;
+}
+
+.toc-row .t-page {
+  flex: 0 0 auto;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.toc-row.lvl-1 {
+  font-weight: 700;
+  color: var(--navy);
+  margin-top: 2.6mm;
+  font-size: 9.8pt;
+}
+
+.toc-row.lvl-1 .t-num {
+  min-width: 16mm;
+}
+
+.toc-row.lvl-2 {
+  padding-left: 16mm;
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+.toc-row.lvl-2 .t-num {
+  min-width: 12mm;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.toc-row.lvl-0 {
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.listing-row {
+  display: flex;
+  align-items: baseline;
+  gap: 2mm;
+  padding: 0.75mm 0;
+  font-family: 'Segoe UI', sans-serif;
+  font-size: 8.8pt;
+  break-inside: avoid;
+}
+
+.listing-row .l-num {
+  flex: 0 0 15mm;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.listing-row .l-title {
+  flex: 0 1 auto;
+  max-width: 128mm;
+  color: var(--ink-soft);
+}
+
+.listing-row .l-dots {
+  flex: 1 1 auto;
+  border-bottom: 0.5pt dotted var(--rule);
+  transform: translateY(-1mm);
+  min-width: 6mm;
+}
+
+.listing-row .l-page {
+  flex: 0 0 auto;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.pagebreak {
+  break-after: page;
+}

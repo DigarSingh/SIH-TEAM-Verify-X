@@ -1,0 +1,25 @@
+{
+  "name": "Capacity Connect - IMD",
+  "short_name": "Capacity Connect",
+  "description": "Competency management and operational readiness for the India Meteorological Department. Works offline for saved courses.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F6F8FB",
+  "theme_color": "#0B1F3A",
+  "lang": "en-IN",
+  "dir": "ltr",
+  "categories": ["education", "productivity"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "My courses", "short_name": "Courses", "url": "/trainee/my-courses" },
+    { "name": "Saved for offline", "short_name": "Offline", "url": "/offline-library" }
+  ]
+}

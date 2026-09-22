@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 544" width="1020" height="544" role="img" aria-label="Sequence: skill-gap analysis with freshness">
+<title>Sequence: skill-gap analysis with freshness</title>
+
+<defs>
+  <marker id="ah" markerWidth="9" markerHeight="9" refX="8" refY="3.2" orient="auto">
+    <path d="M0,0 L8,3.2 L0,6.4 z" fill="#64748B"/>
+  </marker>
+  <marker id="ahs" markerWidth="9" markerHeight="9" refX="8" refY="3.2" orient="auto">
+    <path d="M0,0 L8,3.2 L0,6.4 z" fill="#2D8CFF"/>
+  </marker>
+  <marker id="ahOpen" markerWidth="10" markerHeight="10" refX="9" refY="3.5" orient="auto">
+    <path d="M0,0 L9,3.5 L0,7" fill="none" stroke="#64748B" stroke-width="1.3"/>
+  </marker>
+</defs>
+<rect width="1020" height="544" fill="#FFFFFF"/>
+<rect x="30" y="18" width="176" height="40" rx="7" fill="#EAF4FF" stroke="#2D8CFF" stroke-width="1.3"/>
+<text x="118" y="41" font-family="Inter, Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#102A43" text-anchor="middle">Browser</text>
+<line x1="118" y1="58" x2="118" y2="480" stroke="#CBD5E1" stroke-width="1.1" stroke-dasharray="4 4"/>
+<rect x="226" y="18" width="176" height="40" rx="7" fill="#FFFFFF" stroke="#0B1F3A" stroke-width="1.3"/>
+<text x="314" y="41" font-family="Inter, Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#102A43" text-anchor="middle">skill-gaps.routes</text>
+<line x1="314" y1="58" x2="314" y2="480" stroke="#CBD5E1" stroke-width="1.1" stroke-dasharray="4 4"/>
+<rect x="422" y="18" width="176" height="40" rx="7" fill="#FFFFFF" stroke="#0B1F3A" stroke-width="1.3"/>
+<text x="510" y="41" font-family="Inter, Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#102A43" text-anchor="middle">profile.service</text>
+<line x1="510" y1="58" x2="510" y2="480" stroke="#CBD5E1" stroke-width="1.1" stroke-dasharray="4 4"/>
+<rect x="618" y="18" width="176" height="40" rx="7" fill="#FFFFFF" stroke="#0B1F3A" stroke-width="1.3"/>
+<text x="706" y="41" font-family="Inter, Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#102A43" text-anchor="middle">engine: skill-gap + decay</text>
+<line x1="706" y1="58" x2="706" y2="480" stroke="#CBD5E1" stroke-width="1.1" stroke-dasharray="4 4"/>
+<rect x="814" y="18" width="176" height="40" rx="7" fill="#FFFFFF" stroke="#0B1F3A" stroke-width="1.3"/>
+<text x="902" y="41" font-family="Inter, Segoe UI, sans-serif" font-size="10.5" font-weight="700" fill="#102A43" text-anchor="middle">PostgreSQL</text>
+<line x1="902" y1="58" x2="902" y2="480" stroke="#CBD5E1" stroke-width="1.1" stroke-dasharray="4 4"/>
+<line x1="122" y1="74" x2="308" y2="74" stroke="#2D8CFF" stroke-width="1.3" marker-end="url(#ahs)"/>
+<text x="216" y="68" font-family="Inter, Segoe UI, sans-serif" font-size="9.5" font-weight="400" fill="#102A43" text-anchor="middle">GET /api/skill-gaps/me?offsetDays=n</text>
+<line x1="318" y1="114" x2="504" y2="114" stroke="#2D8CFF" stroke-width="1.3" marker-end="url(#ahs)"/>
+<text x="412" y="108" font-family="Inter, Segoe UI, sans-serif" font-size="9.5" font-weight="400" fill="#102A43" text-anchor="middle">loadEmployeeAnalysis(userId, asOf)</text>
+<line x1="514" y1="154" x2="896" y2="154" stroke="#2D8CFF" stroke-width="1.3" marker-end="url(#ahs)"/>
+<text x="706" y="148" font-family="Inter, Segoe UI, sans-serif" font-size="9.5" font-weight="400" fill="#102A43" text-anchor="middle">role requirements, held levels, decay policies</text>
+<line x1="898" y1="194" x2="516" y2="194" stroke="#64748B" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ah)"/>
+<text x="706" y="188" font-family="Inter, Segoe UI, sans-serif" font-size="9.5" font-weight="400" fill="#102A43" text-anchor="middle">rows</text>
+<line x1="514" y1="234" x2="700" y2="234" stroke="#2D8CFF" stroke-width="1.3" marker-end="url(#ahs)"/>
+<text x="608" y="228" font-family="Inter, Segoe UI, sans-serif" font-size="9.5" font-weight="400" fill="#102A43" text-anchor="middle">analyzeFreshness(baseline, dates, policy, asOf)</text>
+<line x1="702" y1="274" x2="516" y2="274" stroke="#64748B" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ah)"/>
+<text x="608" y="268" font-family="Inter, Segoe UI, sans-serif" font-size="9.5" font-weight="400" fill="#102A43" text-anchor="middle">effectiveLevel, status, reason</text>
+<line x1="514" y1="314" x2="700" y2="314" stroke="#2D8CFF" stroke-width="1.3" marker-end="url(#ahs)"/>
+<text x="608" y="308" font-family="Inter, Segoe UI, sans-serif" font-size="9.5" font-weight="400" fill="#102A43" text-anchor="middle">analyzeSkillGap(effectiveLevel, required, importance)</text>
+<line x1="702" y1="354" x2="516" y2="354" stroke="#64748B" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ah)"/>
+<text x="608" y="348" font-family="Inter, Segoe UI, sans-serif" font-size="9.5" font-weight="400" fill="#102A43" text-anchor="middle">gap, severity, priority, explanation</text>
+<line x1="506" y1="394" x2="320" y2="394" stroke="#64748B" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ah)"/>
+<text x="412" y="388" font-family="Inter, Segoe UI, sans-serif" font-size="9.5" font-weight="400" fill="#102A43" text-anchor="middle">records + summary + refreshers + asOf</text>
+<line x1="310" y1="434" x2="124" y2="434" stroke="#64748B" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ah)"/>
+<text x="216" y="428" font-family="Inter, Segoe UI, sans-serif" font-size="9.5" font-weight="400" fill="#102A43" text-anchor="middle">200 { data }</text>
+<rect x="24" y="484" width="972" height="44" rx="6" fill="#FFFBEB" stroke="#F59E0B"/>
+<text x="510" y="502" font-family="Inter, Segoe UI, sans-serif" font-size="10" font-weight="400" fill="#92400E" text-anchor="middle">Nothing is written. The simulated date only changes the input to the pure decay function, which is why "readiness time travel" cannot corrupt data.</text>
+</svg>

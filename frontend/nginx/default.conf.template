@@ -1,0 +1,77 @@
+# Serves the built web app and forwards /api to the API (${API_UPSTREAM}), so the browser and the API share one origin.
+# Only API_* and CSP_* environment variables are substituted into this template.
+# TLS is expected to be terminated in front of this container (load balancer, ingress or a host-level proxy) which must
+# pass X-Forwarded-Proto; see docs/deployment.md.
+server {
+    listen 80;
+    server_name _;
+    server_tokens off;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Uploads: MAX_UPLOAD_MB (default 25) plus multipart overhead.
+    client_max_body_size 30m;
+
+    gzip on;
+    gzip_min_length 1024;
+    gzip_types text/css application/javascript application/json application/manifest+json image/svg+xml model/gltf-binary;
+
+    # Security headers for the web app. (The API sets its own on its responses.)
+    # `blob:` is needed for what the app builds in the browser: certificate PDFs, QR codes and downloads.
+    # CSP_EXTRA_ORIGINS adds origins the browser may load from and connect to, separated by spaces: the bucket origin when
+    # STORAGE_DRIVER=s3 (the API answers file requests with a redirect to it; the bucket must also allow CORS for the web
+    # origin), and the API origin when the API is hosted separately (VITE_API_URL). Empty by default.
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "no-referrer" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: ${CSP_EXTRA_ORIGINS}; font-src 'self' data:; connect-src 'self' ${CSP_EXTRA_ORIGINS}; object-src 'self' blob:; frame-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+
+    location /api/ {
+        proxy_pass http://${API_UPSTREAM};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+        # AI requests can take up to two minutes.
+        proxy_read_timeout 180s;
+        proxy_send_timeout 180s;
+    }
+
+    # Built files are content-hashed: cache them for a year.
+    location /assets/ {
+        try_files $uri =404;
+        expires 1y;
+    }
+
+    # The service worker decides what the whole app caches, so it must itself be revalidated on every load:
+    # a stale copy would pin an old build on every device that has it. (No add_header here, so the security
+    # headers above are still inherited.)
+    location = /sw.js {
+        expires -1;
+    }
+
+    # .webmanifest is not in nginx's default MIME table; without this it is served as a generic download and
+    # the browser will not offer to install the app.
+    location = /manifest.webmanifest {
+        types { }
+        default_type application/manifest+json;
+        expires -1;
+    }
+
+    # 3D models for the AR Instrument Lab. .glb is not in nginx's default MIME table either, and the models are
+    # immutable content that a phone on mobile data should only fetch once.
+    location /models/ {
+        types { }
+        default_type model/gltf-binary;
+        try_files $uri =404;
+        expires 30d;
+    }
+
+    # Single-page app: every other path is served by index.html, which must never be cached.
+    location / {
+        try_files $uri $uri/ /index.html;
+        expires -1;
+    }
+}

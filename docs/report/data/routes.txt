@@ -1,0 +1,177 @@
+GET    /api/achievements/me                                      Any signed-in user
+GET    /api/admin/analytics                                      ADMIN
+GET    /api/admin/announcements                                  ADMIN
+POST   /api/admin/announcements                                  ADMIN
+PATCH  /api/admin/announcements/:id                              ADMIN
+DELETE /api/admin/announcements/:id                              ADMIN
+GET    /api/admin/audit-logs                                     ADMIN
+GET    /api/admin/heatmap                                        ADMIN
+GET    /api/admin/heatmap/cell                                   ADMIN
+POST   /api/admin/jobs/reminders                                 ADMIN
+GET    /api/admin/predictive-needs                               ADMIN
+GET    /api/admin/skill-gaps                                     ADMIN
+GET    /api/admin/training-needs                                 ADMIN
+GET    /api/admin/training-needs/:competencyId                   ADMIN
+POST   /api/ai/courses/:courseId/ask                             Any signed-in user
+POST   /api/ai/courses/:courseId/quiz-draft                      TRAINER / ADMIN
+POST   /api/ai/predictive-needs/summary                          ADMIN
+POST   /api/ai/recommendations/me/plan                           TRAINEE
+POST   /api/ai/search                                            Any signed-in user
+GET    /api/announcements                                        Any signed-in user
+GET    /api/ar/analytics                                         ADMIN
+GET    /api/ar/attempts                                          TRAINER / ADMIN
+GET    /api/ar/attempts/:attemptId                               Any signed-in user
+GET    /api/ar/modules                                           Any signed-in user
+GET    /api/ar/modules/:idOrKey                                  Any signed-in user
+POST   /api/ar/modules/:idOrKey/start                            TRAINEE
+POST   /api/ar/modules/:idOrKey/submit                           TRAINEE
+GET    /api/ar/refresher                                         Any signed-in user
+GET    /api/assessments                                          TRAINER / ADMIN
+POST   /api/assessments                                          TRAINER / ADMIN
+GET    /api/assessments/:id                                      Any signed-in user
+PATCH  /api/assessments/:id                                      TRAINER / ADMIN
+DELETE /api/assessments/:id                                      TRAINER / ADMIN
+POST   /api/assessments/:id/questions                            TRAINER / ADMIN
+PATCH  /api/assessments/:id/questions/:questionId                TRAINER / ADMIN
+DELETE /api/assessments/:id/questions/:questionId                TRAINER / ADMIN
+PUT    /api/assessments/:id/questions/order                      TRAINER / ADMIN
+GET    /api/assessments/:id/results                              Any signed-in user
+GET    /api/assessments/:id/scenarios                            TRAINER / ADMIN
+PUT    /api/assessments/:id/scenarios                            TRAINER / ADMIN
+POST   /api/assessments/:id/start                                TRAINEE
+POST   /api/assessments/:id/submit                               TRAINEE
+GET    /api/assessments/attempts/:attemptId                      Any signed-in user
+GET    /api/assessments/me                                       TRAINEE
+POST   /api/auth/change-password                                 Any signed-in user
+POST   /api/auth/login                                           Public
+POST   /api/auth/logout                                          Public
+POST   /api/auth/refresh                                         Public
+POST   /api/auth/register                                        Public
+GET    /api/certificates                                         ADMIN
+GET    /api/certificates/:id/pdf                                 Any signed-in user
+GET    /api/certificates/:id/qr                                  Any signed-in user
+POST   /api/certificates/:id/reinstate                           ADMIN
+POST   /api/certificates/:id/revoke                              ADMIN
+GET    /api/certificates/me                                      Any signed-in user
+GET    /api/certificates/verification-key                        Public
+GET    /api/certificates/verify/:certificateId                   Public
+GET    /api/competencies                                         Any signed-in user
+POST   /api/competencies                                         ADMIN
+GET    /api/competencies/:id                                     Any signed-in user
+PATCH  /api/competencies/:id                                     ADMIN
+DELETE /api/competencies/:id                                     ADMIN
+PUT    /api/competencies/:id/decay-policy                        ADMIN
+DELETE /api/competencies/:id/decay-policy                        ADMIN
+GET    /api/competencies/decay/policies                          ADMIN / TRAINER
+GET    /api/competencies/engine/config                           Any signed-in user
+PUT    /api/competencies/engine/config                           ADMIN
+POST   /api/competencies/engine/config/reset                     ADMIN
+POST   /api/competencies/engine/simulate                         ADMIN / TRAINER
+GET    /api/competencies/me                                      Any signed-in user
+GET    /api/competencies/me/history                              Any signed-in user
+GET    /api/competencies/me/passport                             Any signed-in user
+POST   /api/competencies/practice                                ADMIN / TRAINER
+GET    /api/courses                                              Any signed-in user
+POST   /api/courses                                              TRAINER / ADMIN
+GET    /api/courses/:id                                          Any signed-in user
+PATCH  /api/courses/:id                                          TRAINER / ADMIN
+DELETE /api/courses/:id                                          TRAINER / ADMIN
+GET    /api/courses/:id/analytics                                TRAINER / ADMIN
+PUT    /api/courses/:id/competencies                             TRAINER / ADMIN
+PUT    /api/courses/:id/competencies/:competencyId               TRAINER / ADMIN
+DELETE /api/courses/:id/competencies/:competencyId               TRAINER / ADMIN
+POST   /api/courses/:id/enroll                                   TRAINEE
+GET    /api/courses/:id/feedback                                 Any signed-in user
+POST   /api/courses/:id/feedback                                 TRAINEE
+GET    /api/courses/:id/learn                                    Any signed-in user
+POST   /api/courses/:id/modules                                  TRAINER / ADMIN
+PATCH  /api/courses/:id/modules/:moduleId                        TRAINER / ADMIN
+DELETE /api/courses/:id/modules/:moduleId                        TRAINER / ADMIN
+POST   /api/courses/:id/modules/:moduleId/materials              TRAINER / ADMIN
+PATCH  /api/courses/:id/modules/:moduleId/materials/:materialId  TRAINER / ADMIN
+DELETE /api/courses/:id/modules/:moduleId/materials/:materialId  TRAINER / ADMIN
+PUT    /api/courses/:id/modules/order                            TRAINER / ADMIN
+PUT    /api/courses/:id/prerequisites                            TRAINER / ADMIN
+PATCH  /api/courses/:id/status                                   TRAINER / ADMIN
+GET    /api/courses/:id/thumbnail                                Public
+POST   /api/courses/:id/thumbnail                                TRAINER / ADMIN
+DELETE /api/courses/:id/thumbnail                                TRAINER / ADMIN
+GET    /api/courses/:id/trainees                                 TRAINER / ADMIN
+GET    /api/courses/materials/:materialId/download               Any signed-in user
+GET    /api/dashboard/trainee                                    TRAINEE
+GET    /api/dashboard/trainer                                    TRAINER / ADMIN
+GET    /api/departments                                          Any signed-in user
+POST   /api/departments                                          ADMIN
+PATCH  /api/departments/:id                                      ADMIN
+DELETE /api/departments/:id                                      ADMIN
+POST   /api/enrollments/:id/modules/:moduleId/complete           TRAINEE
+DELETE /api/enrollments/:id/modules/:moduleId/complete           TRAINEE
+POST   /api/enrollments/:id/withdraw                             TRAINEE
+GET    /api/enrollments/me                                       TRAINEE
+GET    /api/enrollments/me/:courseId                             TRAINEE
+GET    /api/evaluations                                          TRAINER / ADMIN
+POST   /api/evaluations                                          TRAINER / ADMIN
+GET    /api/evaluations/me                                       TRAINEE
+GET    /api/evaluations/rubric                                   Any signed-in user
+GET    /api/health                                               Public
+GET    /api/meta/options                                         Public
+GET    /api/notifications                                        Any signed-in user
+DELETE /api/notifications/:id                                    Any signed-in user
+PATCH  /api/notifications/:id/read                               Any signed-in user
+PATCH  /api/notifications/read-all                               Any signed-in user
+GET    /api/notifications/unread-count                           Any signed-in user
+GET    /api/readiness/assignments/me                             Any signed-in user
+GET    /api/readiness/calendar                                   ADMIN / TRAINER
+GET    /api/readiness/events                                     ADMIN / TRAINER
+POST   /api/readiness/events                                     ADMIN
+GET    /api/readiness/events/:id                                 ADMIN / TRAINER
+PUT    /api/readiness/events/:id                                 ADMIN
+DELETE /api/readiness/events/:id                                 ADMIN
+POST   /api/readiness/events/:id/assign                          ADMIN
+GET    /api/readiness/events/:id/assignments                     ADMIN / TRAINER
+GET    /api/readiness/events/:id/readiness                       ADMIN / TRAINER
+GET    /api/readiness/overview                                   ADMIN
+GET    /api/recommendations/me                                   Any signed-in user
+GET    /api/roles                                                Any signed-in user
+POST   /api/roles                                                ADMIN
+GET    /api/roles/:id                                            Any signed-in user
+PATCH  /api/roles/:id                                            ADMIN
+DELETE /api/roles/:id                                            ADMIN
+PUT    /api/roles/:id/competencies/:competencyId                 ADMIN
+DELETE /api/roles/:id/competencies/:competencyId                 ADMIN
+GET    /api/search                                               Any signed-in user
+GET    /api/skill-gaps/me                                        Any signed-in user
+GET    /api/skill-gaps/users/:userId                             ADMIN / TRAINER
+GET    /api/succession                                           ADMIN
+GET    /api/succession/competencies/:id                          ADMIN / TRAINER
+GET    /api/succession/mentorships                               ADMIN / TRAINER
+POST   /api/succession/mentorships                               ADMIN / TRAINER
+PATCH  /api/succession/mentorships/:id                           ADMIN / TRAINER
+GET    /api/succession/mentorships/me                            Any signed-in user
+GET    /api/users                                                ADMIN
+POST   /api/users                                                ADMIN
+GET    /api/users/:id                                            ADMIN
+PATCH  /api/users/:id                                            ADMIN
+DELETE /api/users/:id                                            ADMIN
+POST   /api/users/:id/approve                                    ADMIN
+PUT    /api/users/:id/competencies/:competencyId                 ADMIN
+GET    /api/users/:id/passport                                   ADMIN / TRAINER
+POST   /api/users/:id/reject                                     ADMIN
+POST   /api/users/:id/reset-password                             ADMIN
+PATCH  /api/users/:id/role                                       ADMIN
+PATCH  /api/users/:id/status                                     ADMIN
+GET    /api/users/me                                             Any signed-in user
+PATCH  /api/users/me                                             Any signed-in user
+POST   /api/users/me/experiences                                 Any signed-in user
+PATCH  /api/users/me/experiences/:id                             Any signed-in user
+DELETE /api/users/me/experiences/:id                             Any signed-in user
+GET    /api/users/me/profile                                     Any signed-in user
+PUT    /api/users/me/profile                                     Any signed-in user
+POST   /api/users/me/qualifications                              Any signed-in user
+PATCH  /api/users/me/qualifications/:id                          Any signed-in user
+DELETE /api/users/me/qualifications/:id                          Any signed-in user
+POST   /api/users/me/skills                                      Any signed-in user
+PATCH  /api/users/me/skills/:id                                  Any signed-in user
+DELETE /api/users/me/skills/:id                                  Any signed-in user
+
+175 routes

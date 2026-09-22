@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p _prototype)",
+      "Bash(mv src *)",
+      "Bash(rm -rf node_modules)",
+      "Bash(mkdir -p backend/src backend/tests frontend/src prisma docs scripts)",
+      "Bash(powershell.exe -NoProfile -Command 'Get-Process | Where-Object { $_.ProcessName -match '\\\\''node|vite|esbuild'\\\\'' } | Select-Object Id,ProcessName,StartTime | Format-Table -AutoSize')",
+      "Bash(cd \"/d/Capacity Connect\" && cp -r src _prototype/src && diff -r src _prototype/src && echo \"COPY VERIFIED: identical\" && find _prototype/src -type f | wc -l && find src -type f | wc -l)",
+      "Bash(npm install *)",
+      "Bash(node -p \"require\\('../pg/package.json'\\).version\")",
+      "Bash(node scripts/setup-env.mjs)",
+      "Bash(grep -c \"^JWT_SECRET=.\\\\{40,\\\\}\" .env)",
+      "Bash(node scripts/local-postgres.mjs)"
+    ]
+  }
+}

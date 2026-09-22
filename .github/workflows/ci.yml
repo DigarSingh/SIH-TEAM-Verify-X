@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Typecheck, lint, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: capacity_connect_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # A throw-away database: the backend tests TRUNCATE every table in it.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/capacity_connect_test?schema=public
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/capacity_connect_test?schema=public
+      # Not a secret: it only signs tokens inside this job.
+      JWT_SECRET: ci-only-signing-key-that-is-at-least-32-characters-long
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Tests (backend against PostgreSQL, frontend in jsdom)
+        run: npm test
+      - name: docs/api.md lists exactly the routes the code registers
+        run: npm run routes -- --check
+      - name: Build
+        run: npm run build
+
+  docker:
+    name: Docker images and compose file
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the API image
+        run: docker build -f backend/Dockerfile -t capacity-connect-api .
+      - name: Build the web image
+        run: docker build -f frontend/Dockerfile -t capacity-connect-web .
+      - name: Validate docker-compose.yml
+        env:
+          POSTGRES_PASSWORD: ci-only
+          JWT_SECRET: ci-only-signing-key-that-is-at-least-32-characters-long
+        run: docker compose config --quiet

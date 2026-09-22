@@ -1,0 +1,1377 @@
+// =============================================================================
+// Capacity Connect - relational data model (PostgreSQL)
+//
+// Naming note:
+//   * `UserRole` (enum) is the ACCESS role used for RBAC: TRAINEE | TRAINER | ADMIN.
+//   * `Role` (model)   is the ORGANISATIONAL job role / designation of an employee
+//                      (e.g. "Severe Weather Forecaster"). Required competencies are
+//                      defined per `Role` through `RoleCompetency`.
+//
+// Competency levels are integers on a 0..100 scale everywhere. Range checks are
+// enforced in the database by CHECK constraints (see the migration
+// `*_data_integrity_constraints`).
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// Enums
+// ----------------------------------------------------------------------------
+
+enum UserRole {
+  TRAINEE
+  TRAINER
+  ADMIN
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+  SUSPENDED
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum MaterialType {
+  VIDEO
+  DOCUMENT
+  LINK
+  TEXT
+}
+
+enum EnrollmentStatus {
+  ENROLLED
+  IN_PROGRESS
+  ASSESSMENT_PENDING
+  COMPLETED
+  CERTIFIED
+  WITHDRAWN
+}
+
+enum QuestionType {
+  SINGLE
+  MULTIPLE
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  EXPIRED
+}
+
+enum CertificateStatus {
+  VALID
+  REVOKED
+}
+
+enum EvaluationType {
+  EVALUATION
+  PRACTICAL
+}
+
+enum CompetencySource {
+  BASELINE
+  ASSESSMENT
+  TRAINER_EVALUATION
+  PRACTICAL
+  ADMIN_ADJUSTMENT
+}
+
+/// Stage of an employee's career. Used by the succession view to tell a developing
+/// officer from an established one; it does not affect any competency calculation.
+enum CareerLevel {
+  JUNIOR
+  MID
+  SENIOR
+  PRINCIPAL
+}
+
+enum MentorshipStatus {
+  NOT_STARTED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+/// What a scenario asks the trainee to decide. Kept separate from `QuestionType`
+/// because a scenario step is a judgement, not a knowledge recall.
+/// What an AR lab is for: the full practical, or the short refresher a decayed
+/// competency triggers.
+enum ARModuleKind {
+  FULL_LAB
+  REFRESHER
+}
+
+/// Guided training shows hints and the right answer; the assessment shows neither.
+enum ARTaskPhase {
+  TRAINING
+  ASSESSMENT
+}
+
+/// What the trainee is asked to do with the model.
+enum ARTaskType {
+  /// Tap the named component on the model.
+  IDENTIFY
+  /// Confirm a step of an inspection sequence.
+  INSPECT
+}
+
+enum ARAttemptStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum ScenarioStepType {
+  IDENTIFY
+  INTERPRET
+  ACTION
+}
+
+/// Kind of operational event a readiness sprint prepares for. Configurable data,
+/// not an official IMD operational calendar.
+enum HazardType {
+  MONSOON
+  CYCLONE
+  HEATWAVE
+  FLOOD
+  WINTER
+  THUNDERSTORM
+  OTHER
+}
+
+enum ReadinessEventStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum ReadinessAssignmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  WAIVED
+}
+
+/// How a competency came to be practised. Practice refreshes competency freshness
+/// without being an assessment: doing the work counts, it just is not re-verified.
+enum PracticeSource {
+  COURSE_COMPLETION
+  ASSESSMENT
+  TRAINER_EVALUATION
+  OPERATIONAL_DUTY
+  REFRESHER
+  MANUAL_ENTRY
+}
+
+enum NotificationType {
+  COURSE_RECOMMENDATION
+  COURSE_ENROLLMENT
+  ASSESSMENT_DEADLINE
+  ASSESSMENT_RESULT
+  CERTIFICATE_ISSUED
+  TRAINING_REMINDER
+  ANNOUNCEMENT
+  COMPETENCY_UPDATE
+  EVALUATION_RECEIVED
+  ACHIEVEMENT
+  ACCOUNT
+}
+
+enum AnnouncementAudience {
+  ALL
+  TRAINEES
+  TRAINERS
+  ADMINS
+}
+
+// ----------------------------------------------------------------------------
+// Organisation: departments, job roles, users
+// ----------------------------------------------------------------------------
+
+model Department {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users           User[]
+  announcements   Announcement[]
+  readinessEvents ReadinessEventDepartment[]
+}
+
+/// Organisational job role (designation). NOT the RBAC role - see `UserRole`.
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  code        String   @unique
+  description String?
+  /// Mission criticality of the role, 1 (low) .. 5 (mission critical).
+  /// Multiplies into the training-priority score.
+  criticality Int      @default(3)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users        User[]
+  competencies RoleCompetency[]
+}
+
+model User {
+  id                 String       @id @default(uuid())
+  email              String       @unique
+  passwordHash       String
+  name               String
+  employeeId         String?      @unique
+  phone              String?
+  designation        String?
+  location           String?
+  joiningDate        DateTime?
+  /// Expected retirement, when the organisation records one. Used only to flag a
+  /// configured workforce-continuity risk; it predicts nothing on its own.
+  retirementDate     DateTime?
+  careerLevel        CareerLevel?
+  role               UserRole     @default(TRAINEE)
+  status             UserStatus   @default(PENDING)
+  departmentId       String?
+  jobRoleId          String?
+  mustChangePassword Boolean      @default(false)
+  failedLoginCount   Int          @default(0)
+  lockedUntil        DateTime?
+  lastLoginAt        DateTime?
+  approvedAt         DateTime?
+  approvedById       String?
+  rejectionReason    String?
+  /// Soft delete: the row is kept for referential integrity of history (attempts,
+  /// certificates, audit logs) and unique fields are released.
+  deletedAt          DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  department    Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  jobRole       Role?       @relation(fields: [jobRoleId], references: [id], onDelete: SetNull)
+  approvedBy    User?       @relation("UserApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedUsers User[]      @relation("UserApprover")
+
+  profile              ProfessionalProfile?
+  sessions             Session[]
+  competencies         EmployeeCompetency[]
+  competencyHistory    CompetencyHistory[]
+  coursesTaught        Course[]                   @relation("CourseTrainer")
+  enrollments          Enrollment[]
+  assessmentsCreated   Assessment[]
+  attempts             AssessmentAttempt[]
+  certificates         Certificate[]
+  feedback             Feedback[]
+  evaluationsReceived  TrainerEvaluation[]        @relation("EvaluationTrainee")
+  evaluationsGiven     TrainerEvaluation[]        @relation("EvaluationTrainer")
+  notifications        Notification[]
+  achievements         Achievement[]
+  auditLogs            AuditLog[]
+  announcements        Announcement[]
+  practiceRecords      CompetencyPracticeRecord[]
+  practiceRecorded     CompetencyPracticeRecord[] @relation("PracticeRecorder")
+  decayPoliciesEdited  CompetencyDecayPolicy[]    @relation("DecayPolicyEditor")
+  mentorships          Mentorship[]               @relation("Mentor")
+  menteeships          Mentorship[]               @relation("Mentee")
+  mentorshipsCreated   Mentorship[]               @relation("MentorshipCreator")
+  readinessAssignments ReadinessAssignment[]      @relation("ReadinessAssignee")
+  readinessAssigned    ReadinessAssignment[]      @relation("ReadinessAssigner")
+  readinessEvents      ReadinessEvent[]           @relation("ReadinessEventCreator")
+  arAttempts           ARPracticalAttempt[]
+
+  @@index([role, status])
+  @@index([departmentId])
+  @@index([jobRoleId])
+  @@index([deletedAt])
+  @@index([createdAt])
+}
+
+model Session {
+  id                String    @id @default(uuid())
+  userId            String
+  /// SHA-256 of the current opaque refresh token (the raw token is never stored).
+  tokenHash         String    @unique
+  /// Hash of the previously issued refresh token; presenting it again signals token theft.
+  previousTokenHash String?
+  userAgent         String?
+  ipAddress         String?
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  lastUsedAt        DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([previousTokenHash])
+  @@index([expiresAt])
+}
+
+// ----------------------------------------------------------------------------
+// Professional profile (qualifications, experience, self-declared skills)
+// ----------------------------------------------------------------------------
+
+model ProfessionalProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  headline  String?
+  bio       String?
+  /// Areas of expertise (mainly used for trainers).
+  expertise String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  qualifications Qualification[]
+  experiences    WorkExperience[]
+  skills         ProfileSkill[]
+}
+
+model Qualification {
+  id            String   @id @default(uuid())
+  profileId     String
+  degree        String
+  institution   String
+  fieldOfStudy  String?
+  yearCompleted Int?
+  createdAt     DateTime @default(now())
+
+  profile ProfessionalProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+model WorkExperience {
+  id           String    @id @default(uuid())
+  profileId    String
+  title        String
+  organization String
+  location     String?
+  startDate    DateTime
+  endDate      DateTime?
+  description  String?
+  createdAt    DateTime  @default(now())
+
+  profile ProfessionalProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+/// Self-declared skill. Informational only - verified competency is tracked in
+/// `EmployeeCompetency` and can only change through assessed evidence.
+model ProfileSkill {
+  id          String   @id @default(uuid())
+  profileId   String
+  name        String
+  proficiency Int      @default(3)
+  createdAt   DateTime @default(now())
+
+  profile ProfessionalProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, name])
+}
+
+// ----------------------------------------------------------------------------
+// Competency framework
+// ----------------------------------------------------------------------------
+
+model Competency {
+  id               String   @id @default(uuid())
+  code             String   @unique
+  name             String   @unique
+  description      String
+  category         String
+  /// Optional descriptors of what each proficiency band looks like.
+  levelDescriptors Json?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  roles                 RoleCompetency[]
+  employees             EmployeeCompetency[]
+  courses               CourseCompetency[]
+  history               CompetencyHistory[]
+  evaluations           TrainerEvaluation[]
+  decayPolicy           CompetencyDecayPolicy?
+  practice              CompetencyPracticeRecord[]
+  arModules             ARModule[]
+  mentorships           Mentorship[]
+  readinessRequirements ReadinessRequirement[]
+  readinessAssignments  ReadinessAssignment[]
+
+  @@index([category])
+}
+
+/// How a competency loses value when it is not practised, and when that becomes a
+/// problem. One optional row per competency: without a row the competency does not
+/// decay at all, so switching decay on is always a deliberate, audited act.
+///
+/// These are configurable operating parameters, not official IMD policy; rows
+/// created by the demo seed carry `isSimulation`.
+model CompetencyDecayPolicy {
+  id                          String   @id @default(uuid())
+  competencyId                String   @unique
+  decayEnabled                Boolean  @default(true)
+  /// Days in which an unpractised competency loses half of its level.
+  halfLifeDays                Int      @default(180)
+  /// Below this effective level the competency is CRITICAL whatever the requirement, 0..100.
+  minimumSafeLevel            Int      @default(40)
+  /// Days between required reassessments; 0 switches recertification off.
+  recertificationIntervalDays Int      @default(365)
+  /// Operational criticality of the competency itself, 1 (low) .. 5 (mission critical).
+  criticality                 Int      @default(3)
+  /// Marks a demonstration value rather than an approved organisational policy.
+  isSimulation                Boolean  @default(false)
+  notes                       String?
+  updatedById                 String?
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  updatedBy  User?      @relation("DecayPolicyEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+}
+
+/// A simulated operational situation a trainee must work through: read the
+/// evidence, interpret it, and choose what to do. Scored alongside the multiple-
+/// choice questions to give a practical component.
+///
+/// Scenarios are TRAINING SIMULATIONS written for assessment. They are not
+/// official operational procedures and must not be used as such.
+model PracticalScenario {
+  id           String   @id @default(uuid())
+  assessmentId String
+  title        String
+  /// The situation as the trainee reads it.
+  briefing     String
+  /// Optional supporting image (a simulated radar or satellite product).
+  imageUrl     String?
+  /// Marks this scenario contributes to the practical component.
+  marks        Int      @default(10)
+  position     Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assessment Assessment              @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  steps      PracticalScenarioStep[]
+  responses  PracticalResponse[]
+
+  @@index([assessmentId, position])
+}
+
+/// One decision inside a scenario.
+model PracticalScenarioStep {
+  id          String           @id @default(uuid())
+  scenarioId  String
+  type        ScenarioStepType @default(INTERPRET)
+  prompt      String
+  /// Marks for this step; the steps of a scenario sum to the scenario's marks.
+  marks       Int              @default(1)
+  position    Int
+  /// Shown after submission, whatever the trainee chose.
+  explanation String?
+
+  scenario  PracticalScenario         @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  options   PracticalScenarioOption[]
+  responses PracticalResponse[]
+
+  @@index([scenarioId, position])
+}
+
+/// A choice for a scenario step. Unlike a quiz option, a choice can be partly
+/// right: a defensible but suboptimal decision earns part of the marks.
+model PracticalScenarioOption {
+  id        String  @id @default(uuid())
+  stepId    String
+  text      String
+  /// Share of the step's marks this choice earns, 0..1. 1 is the best decision.
+  credit    Float   @default(0)
+  /// Why this choice earns what it earns; shown in the result.
+  rationale String?
+  position  Int
+
+  step      PracticalScenarioStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  responses PracticalResponse[]
+
+  @@index([stepId, position])
+}
+
+/// What one trainee chose for one scenario step, in one attempt.
+model PracticalResponse {
+  id               String   @id @default(uuid())
+  attemptId        String
+  scenarioId       String
+  stepId           String
+  selectedOptionId String?
+  creditAwarded    Float    @default(0)
+  marksAwarded     Float    @default(0)
+  createdAt        DateTime @default(now())
+
+  attempt        AssessmentAttempt        @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  scenario       PracticalScenario        @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  step           PracticalScenarioStep    @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  selectedOption PracticalScenarioOption? @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+
+  @@unique([attemptId, stepId])
+  @@index([scenarioId])
+}
+
+/// A period the organisation must be ready for (a cyclone season, a monsoon
+/// onset), with the competencies that readiness depends on.
+///
+/// This is a configurable calendar, not an official IMD operational plan; entries
+/// created by the demo seed carry `isSimulation`.
+model ReadinessEvent {
+  id           String               @id @default(uuid())
+  name         String
+  description  String?
+  startDate    DateTime
+  endDate      DateTime
+  hazardType   HazardType           @default(OTHER)
+  /// 1 (routine) .. 5 (highest). Orders the readiness calendar.
+  priority     Int                  @default(3)
+  status       ReadinessEventStatus @default(PLANNED)
+  isSimulation Boolean              @default(false)
+  createdById  String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  createdBy    User?                      @relation("ReadinessEventCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  requirements ReadinessRequirement[]
+  departments  ReadinessEventDepartment[]
+  assignments  ReadinessAssignment[]
+
+  @@index([startDate])
+  @@index([status, startDate])
+}
+
+/// A competency the event depends on, and the level it depends on.
+model ReadinessRequirement {
+  id            String @id @default(uuid())
+  eventId       String
+  competencyId  String
+  /// Minimum effective level someone needs for this event, 0..100.
+  requiredLevel Int    @default(70)
+  /// Importance of this competency to the event, 1..5.
+  importance    Int    @default(3)
+
+  event      ReadinessEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  competency Competency     @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, competencyId])
+  @@index([competencyId])
+}
+
+/// Departments the event applies to. With no rows the event applies to everyone.
+model ReadinessEventDepartment {
+  eventId      String
+  departmentId String
+
+  event      ReadinessEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  department Department     @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, departmentId])
+  @@index([departmentId])
+}
+
+/// Preparation assigned to one person for one event.
+model ReadinessAssignment {
+  id           String                    @id @default(uuid())
+  eventId      String
+  userId       String
+  competencyId String?
+  courseId     String?
+  status       ReadinessAssignmentStatus @default(ASSIGNED)
+  assignedAt   DateTime                  @default(now())
+  completedAt  DateTime?
+  note         String?
+  assignedById String?
+
+  event      ReadinessEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user       User           @relation("ReadinessAssignee", fields: [userId], references: [id], onDelete: Cascade)
+  competency Competency?    @relation(fields: [competencyId], references: [id], onDelete: SetNull)
+  course     Course?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  assignedBy User?          @relation("ReadinessAssigner", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, userId, competencyId])
+  @@index([userId, status])
+  @@index([eventId, status])
+}
+
+/// A recorded pairing so an expert can pass a competency on before it is lost.
+/// Created by an administrator or trainer in response to a continuity risk.
+model Mentorship {
+  id           String           @id @default(uuid())
+  mentorId     String
+  menteeId     String
+  competencyId String
+  status       MentorshipStatus @default(NOT_STARTED)
+  startedAt    DateTime?
+  completedAt  DateTime?
+  note         String?
+  createdById  String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  mentor     User       @relation("Mentor", fields: [mentorId], references: [id], onDelete: Cascade)
+  mentee     User       @relation("Mentee", fields: [menteeId], references: [id], onDelete: Cascade)
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  createdBy  User?      @relation("MentorshipCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  /// One live pairing per mentor, mentee and competency.
+  @@unique([mentorId, menteeId, competencyId])
+  @@index([menteeId, status])
+  @@index([competencyId, status])
+}
+
+/// Evidence that a competency was actually used. Append-only: it resets the decay
+/// clock without claiming the competency was re-verified (only an assessment does
+/// that, which is what recertification tracks separately).
+model CompetencyPracticeRecord {
+  id           String         @id @default(uuid())
+  userId       String
+  competencyId String
+  practicedAt  DateTime
+  source       PracticeSource
+  note         String?
+  courseId     String?
+  attemptId    String?
+  recordedById String?
+  createdAt    DateTime       @default(now())
+
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competency Competency         @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  course     Course?            @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  attempt    AssessmentAttempt? @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+  recordedBy User?              @relation("PracticeRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, competencyId, practicedAt])
+  @@index([competencyId, practicedAt])
+}
+
+/// Required competency level (and importance) for an organisational job role.
+model RoleCompetency {
+  id            String   @id @default(uuid())
+  roleId        String
+  competencyId  String
+  /// Required proficiency, 0..100.
+  requiredLevel Int
+  /// Importance of the competency for this role, 1..5.
+  importance    Int      @default(3)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, competencyId])
+  @@index([competencyId])
+}
+
+/// Current verified competency level of an employee (0..100).
+model EmployeeCompetency {
+  id              String    @id @default(uuid())
+  userId          String
+  competencyId    String
+  /// The verified level, before any freshness decay is applied. The decayed
+  /// "effective" level is derived at read time and never stored, so that a
+  /// readiness simulation can ask for any date without altering the record.
+  currentLevel    Int       @default(0)
+  /// Last assessment or evaluation that verified the level; drives recertification.
+  lastEvidenceAt  DateTime?
+  /// Last time the competency was used or practised; resets the decay clock.
+  lastPracticedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, competencyId])
+  @@index([competencyId, currentLevel])
+}
+
+/// Append-only timeline of competency changes, e.g. 35% -> 52% -> 72%.
+model CompetencyHistory {
+  id            String           @id @default(uuid())
+  userId        String
+  competencyId  String
+  previousLevel Int
+  newLevel      Int
+  source        CompetencySource
+  courseId      String?
+  attemptId     String?
+  evaluationId  String?
+  /// Inputs and intermediate values of the update formula (explainability).
+  details       Json?
+  createdAt     DateTime         @default(now())
+
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competency Competency         @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  course     Course?            @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  attempt    AssessmentAttempt? @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+  evaluation TrainerEvaluation? @relation(fields: [evaluationId], references: [id], onDelete: SetNull)
+
+  @@index([userId, competencyId, createdAt])
+  @@index([competencyId, createdAt])
+  @@index([createdAt])
+}
+
+// ----------------------------------------------------------------------------
+// Courses & learning content
+// ----------------------------------------------------------------------------
+
+model Course {
+  id                 String       @id @default(uuid())
+  title              String
+  description        String
+  category           String
+  difficulty         Difficulty   @default(BEGINNER)
+  durationMinutes    Int          @default(0)
+  /// Storage key of the uploaded thumbnail (resolved to a URL by the storage layer).
+  thumbnailKey       String?
+  outcomes           String[]
+  /// Default pass mark (%) applied to the course assessment.
+  passingScore       Int          @default(70)
+  certificateEnabled Boolean      @default(true)
+  status             CourseStatus @default(DRAFT)
+  publishedAt        DateTime?
+  trainerId          String
+  deletedAt          DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  trainer              User                       @relation("CourseTrainer", fields: [trainerId], references: [id])
+  modules              Module[]
+  competencies         CourseCompetency[]
+  arModules            ARModule[]
+  prerequisites        CoursePrerequisite[]       @relation("CourseRequires")
+  requiredBy           CoursePrerequisite[]       @relation("CourseRequiredBy")
+  enrollments          Enrollment[]
+  assessment           Assessment?
+  certificates         Certificate[]
+  feedback             Feedback[]
+  evaluations          TrainerEvaluation[]
+  competencyHistory    CompetencyHistory[]
+  practiceRecords      CompetencyPracticeRecord[]
+  readinessAssignments ReadinessAssignment[]
+
+  @@index([status, deletedAt])
+  @@index([trainerId])
+  @@index([category])
+  @@index([difficulty])
+}
+
+/// Maps a course to a competency and the competency band it addresses:
+/// the course is appropriate from `levelFrom` and can take a learner up to `levelTo`.
+model CourseCompetency {
+  id           String   @id @default(uuid())
+  courseId     String
+  competencyId String
+  levelFrom    Int      @default(0)
+  levelTo      Int      @default(100)
+  createdAt    DateTime @default(now())
+
+  course     Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  competency Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, competencyId])
+  @@index([competencyId])
+}
+
+model CoursePrerequisite {
+  courseId       String
+  prerequisiteId String
+
+  course       Course @relation("CourseRequires", fields: [courseId], references: [id], onDelete: Cascade)
+  prerequisite Course @relation("CourseRequiredBy", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, prerequisiteId])
+  @@index([prerequisiteId])
+}
+
+model Module {
+  id              String   @id @default(uuid())
+  courseId        String
+  title           String
+  description     String?
+  position        Int
+  durationMinutes Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  course    Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  materials LearningMaterial[]
+  progress  ModuleProgress[]
+
+  @@index([courseId, position])
+}
+
+model LearningMaterial {
+  id            String       @id @default(uuid())
+  moduleId      String
+  title         String
+  type          MaterialType
+  /// External URL (videos, links).
+  url           String?
+  /// Inline text / lecture notes.
+  content       String?
+  /// Plain text extracted from uploaded documents; searchable and used as grounding
+  /// context by the optional AI learning assistant.
+  extractedText String?
+  /// Uploaded file (documents): storage key + metadata.
+  fileKey       String?
+  fileName      String?
+  mimeType      String?
+  sizeBytes     Int?
+  position      Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@index([moduleId, position])
+}
+
+// ----------------------------------------------------------------------------
+// Enrollment & progress
+// ----------------------------------------------------------------------------
+
+model Enrollment {
+  id             String           @id @default(uuid())
+  userId         String
+  courseId       String
+  status         EnrollmentStatus @default(ENROLLED)
+  /// Percentage of modules completed (denormalised from ModuleProgress).
+  progress       Int              @default(0)
+  enrolledAt     DateTime         @default(now())
+  startedAt      DateTime?
+  completedAt    DateTime?
+  lastAccessedAt DateTime?
+  dueDate        DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course         Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  moduleProgress ModuleProgress[]
+  attempts       AssessmentAttempt[]
+  certificates   Certificate[]
+
+  @@unique([userId, courseId])
+  @@index([courseId, status])
+  @@index([userId, status])
+  @@index([enrolledAt])
+  @@index([completedAt])
+}
+
+model ModuleProgress {
+  id           String   @id @default(uuid())
+  enrollmentId String
+  moduleId     String
+  completedAt  DateTime @default(now())
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  module     Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, moduleId])
+  @@index([moduleId])
+}
+
+// ----------------------------------------------------------------------------
+// Assessments
+// ----------------------------------------------------------------------------
+
+/// One final assessment per course (question bank + rules).
+model Assessment {
+  id                  String    @id @default(uuid())
+  courseId            String    @unique
+  title               String
+  description         String?
+  instructions        String?
+  timeLimitMinutes    Int?
+  /// Pass mark in percent.
+  passingScore        Int       @default(70)
+  /// 0 = unlimited attempts.
+  maxAttempts         Int       @default(3)
+  deadline            DateTime?
+  /// When set, each attempt draws this many random questions from the bank.
+  questionsPerAttempt Int?
+  /// How the multiple-choice and practical components combine, 0..1. 0.6 means
+  /// MCQ 60% / practical 40%. Ignored when the assessment has no scenarios.
+  mcqWeight           Float     @default(0.6)
+  isPublished         Boolean   @default(false)
+  shuffleQuestions    Boolean   @default(true)
+  shuffleOptions      Boolean   @default(true)
+  showCorrectAnswers  Boolean   @default(true)
+  createdById         String
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  course    Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdBy User                @relation(fields: [createdById], references: [id])
+  questions Question[]
+  scenarios PracticalScenario[]
+  attempts  AssessmentAttempt[]
+
+  @@index([deadline])
+}
+
+model Question {
+  id           String       @id @default(uuid())
+  assessmentId String
+  text         String
+  type         QuestionType @default(SINGLE)
+  marks        Int          @default(1)
+  explanation  String?
+  position     Int
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  assessment Assessment         @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  options    QuestionOption[]
+  answers    AssessmentAnswer[]
+
+  @@index([assessmentId, position])
+}
+
+model QuestionOption {
+  id         String  @id @default(uuid())
+  questionId String
+  text       String
+  isCorrect  Boolean @default(false)
+  position   Int
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId, position])
+}
+
+model AssessmentAttempt {
+  id                  String        @id @default(uuid())
+  assessmentId        String
+  userId              String
+  enrollmentId        String?
+  attemptNumber       Int
+  status              AttemptStatus @default(IN_PROGRESS)
+  startedAt           DateTime      @default(now())
+  submittedAt         DateTime?
+  /// Server-side deadline for a timed attempt.
+  expiresAt           DateTime?
+  /// Question ids in the order they were served (also fixes the random draw).
+  questionOrder       String[]
+  score               Int?
+  totalMarks          Int?
+  percentage          Float?
+  /// Component percentages, kept so a result can be explained after the fact.
+  /// Null when the assessment has no scenarios.
+  mcqPercentage       Float?
+  practicalPercentage Float?
+  passed              Boolean?
+  timeTakenSeconds    Int?
+  /// Client-generated key that makes a submission safe to retry after a lost
+  /// connection: the same key returns the original result instead of creating a
+  /// second attempt or a second certificate.
+  idempotencyKey      String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  assessment         Assessment                 @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  user               User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrollment         Enrollment?                @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  answers            AssessmentAnswer[]
+  competencyHistory  CompetencyHistory[]
+  certificates       Certificate[]
+  practiceRecords    CompetencyPracticeRecord[]
+  practicalResponses PracticalResponse[]
+
+  @@unique([assessmentId, userId, attemptNumber])
+  /// Scoped per user, so one person's key can never collide with another's.
+  @@unique([userId, idempotencyKey])
+  @@index([userId, submittedAt])
+  @@index([assessmentId, status])
+  @@index([submittedAt])
+}
+
+model AssessmentAnswer {
+  id                String   @id @default(uuid())
+  attemptId         String
+  questionId        String
+  selectedOptionIds String[]
+  isCorrect         Boolean
+  marksAwarded      Int
+
+  attempt  AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question Question          @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([questionId])
+}
+
+// ----------------------------------------------------------------------------
+// Certification, feedback, evaluation
+// ----------------------------------------------------------------------------
+
+model Certificate {
+  id                 String            @id @default(uuid())
+  /// Public, human-friendly verification id, e.g. CC-2026-000042-7F3A9C.
+  certificateNumber  String            @unique
+  userId             String
+  courseId           String
+  enrollmentId       String?
+  attemptId          String?
+  /// Snapshots so the certificate stays stable if a name/title is edited later.
+  holderName         String
+  courseTitle        String
+  issuer             String
+  score              Float?
+  issuedAt           DateTime          @default(now())
+  status             CertificateStatus @default(VALID)
+  revokedAt          DateTime?
+  revokedReason      String?
+  /// Base64 Ed25519 signature over the certificate's canonical JSON, so anyone
+  /// with the public key can confirm it was issued here and has not been altered.
+  /// Null for certificates issued before a signing key was configured.
+  signature          String?
+  /// Which signing key produced the signature, so a rotated key can be told apart.
+  signatureKeyId     String?
+  signedAt           DateTime?
+  /// Competency names the signature covers, snapshotted at issue.
+  signedCompetencies String[]
+  createdAt          DateTime          @default(now())
+
+  user       User               @relation(fields: [userId], references: [id])
+  course     Course             @relation(fields: [courseId], references: [id])
+  enrollment Enrollment?        @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+  attempt    AssessmentAttempt? @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, courseId])
+  @@index([issuedAt])
+  @@index([status])
+}
+
+model Feedback {
+  id            String   @id @default(uuid())
+  userId        String
+  courseId      String
+  rating        Int
+  trainerRating Int?
+  comment       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
+/// Weighted trainer rubric (each criterion rated 1..5). Feeds the competency update engine.
+model TrainerEvaluation {
+  id                     String         @id @default(uuid())
+  traineeId              String
+  trainerId              String
+  courseId               String?
+  competencyId           String?
+  type                   EvaluationType @default(EVALUATION)
+  technicalKnowledge     Int
+  practicalAbility       Int
+  participation          Int
+  applicationOfKnowledge Int
+  overallCompetency      Int
+  /// Weighted result on a 0..100 scale.
+  weightedScore          Float
+  /// Weights in force when the evaluation was recorded.
+  weightsUsed            Json
+  comments               String?
+  createdAt              DateTime       @default(now())
+
+  trainee           User                @relation("EvaluationTrainee", fields: [traineeId], references: [id], onDelete: Cascade)
+  trainer           User                @relation("EvaluationTrainer", fields: [trainerId], references: [id])
+  course            Course?             @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  competency        Competency?         @relation(fields: [competencyId], references: [id], onDelete: SetNull)
+  competencyHistory CompetencyHistory[]
+
+  @@index([traineeId, createdAt])
+  @@index([trainerId])
+  @@index([courseId])
+}
+
+// ----------------------------------------------------------------------------
+// Engagement: notifications, announcements, achievements
+// ----------------------------------------------------------------------------
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  /// In-app route the notification points to.
+  link      String?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  /// Idempotency key so scheduled jobs never notify twice for the same event.
+  dedupeKey String?
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, isRead, createdAt])
+}
+
+model Announcement {
+  id           String               @id @default(uuid())
+  title        String
+  body         String
+  audience     AnnouncementAudience @default(ALL)
+  departmentId String?
+  createdById  String
+  publishedAt  DateTime             @default(now())
+  expiresAt    DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  createdBy  User        @relation(fields: [createdById], references: [id])
+
+  @@index([publishedAt])
+}
+
+model Achievement {
+  id          String   @id @default(uuid())
+  userId      String
+  /// Stable badge key, see the achievement catalogue in the backend.
+  code        String
+  title       String
+  description String
+  awardedAt   DateTime @default(now())
+  metadata    Json?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, code])
+  @@index([userId])
+}
+
+// ----------------------------------------------------------------------------
+// Governance: audit log & runtime settings
+// ----------------------------------------------------------------------------
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  /// Machine readable action, e.g. COMPETENCY_CREATED, COURSE_PUBLISHED.
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([action])
+}
+
+/// Key/value runtime configuration (e.g. `engine.config` for the competency engine).
+model SystemSetting {
+  key         String   @id
+  value       Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------------------------
+// AR Instrument Lab
+//
+// A trainee places a 3D instrument in their room, identifies its components and
+// works through a practical assessment. The result is scored on the server and
+// handed to the competency engine as PRACTICAL evidence, so it goes through the
+// same update rules as every other kind of evidence.
+// ---------------------------------------------------------------------------------------------
+
+/// One instrument lab. The architecture takes any instrument; only the Doppler
+/// radar is built for the first release.
+model ARModule {
+  id              String       @id @default(uuid())
+  /// Stable identifier used by the seed and by deep links, e.g. `doppler-radar`.
+  key             String       @unique
+  title           String
+  subtitle        String?
+  description     String
+  /// What the trainee will be able to do afterwards, shown before they start.
+  objectives      String[]
+  /// Path or URL of the .glb. Provenance is recorded in docs/AR_ASSETS.md.
+  modelUrl        String
+  /// Roughly how tall the model is, in metres, so the interface can say it is a scale model.
+  modelHeightM    Float        @default(1.2)
+  competencyId    String
+  /// The theory assessment this practical is combined with, when there is one.
+  courseId        String?
+  kind            ARModuleKind @default(FULL_LAB)
+  /// A refresher belongs to the full lab it refreshes.
+  parentModuleId  String?
+  difficulty      Difficulty   @default(INTERMEDIATE)
+  durationMinutes Int          @default(10)
+  /// Pass mark applied to the combined score.
+  passingScore    Int          @default(70)
+  /// Share of the combined score taken from the theory assessment; the practical takes the rest.
+  /// Configurable per module: the brief's demonstration default is 0.40 theory / 0.60 practical.
+  theoryWeight    Float        @default(0.4)
+  isPublished     Boolean      @default(false)
+  /// Demonstration content is labelled as such wherever it appears.
+  isSimulation    Boolean      @default(true)
+  position        Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  competency Competency           @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+  course     Course?              @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  parent     ARModule?            @relation("ARModuleRefresher", fields: [parentModuleId], references: [id], onDelete: SetNull)
+  refreshers ARModule[]           @relation("ARModuleRefresher")
+  components ARComponent[]
+  tasks      ARTask[]
+  attempts   ARPracticalAttempt[]
+
+  @@index([competencyId])
+  @@index([isPublished, position])
+  @@index([kind])
+}
+
+/// A part of the instrument the trainee can select.
+model ARComponent {
+  id              String  @id @default(uuid())
+  arModuleId      String
+  /// Matches the node and material name in the .glb, so the viewer can highlight it.
+  key             String
+  name            String
+  /// What it is and what it does, shown when the trainee selects it.
+  description     String
+  /// Where the tappable marker sits, in model space: { x, y, z }.
+  hotspotPosition Json
+  /// Surface normal at the marker, used to hide markers facing away from the camera.
+  hotspotNormal   Json?
+  /// Scenery (the foundation pad, the platform) is drawn but never asked about.
+  isInteractive   Boolean @default(true)
+  position        Int     @default(0)
+
+  module     ARModule         @relation(fields: [arModuleId], references: [id], onDelete: Cascade)
+  correctFor ARTask[]         @relation("ARTaskAnswer")
+  responses  ARTaskResponse[]
+
+  @@unique([arModuleId, key])
+  @@index([arModuleId, position])
+}
+
+/// One thing the trainee is asked to do, in guided training or in the assessment.
+/// Both phases share this model because they are the same shape; only the
+/// behaviour around them differs.
+model ARTask {
+  id                 String      @id @default(uuid())
+  arModuleId         String
+  phase              ARTaskPhase @default(TRAINING)
+  type               ARTaskType  @default(IDENTIFY)
+  position           Int
+  instruction        String
+  /// Offered after a wrong answer during training. Never sent during the assessment.
+  hint               String?
+  /// Shown after the answer, whatever the trainee chose.
+  explanation        String?
+  correctComponentId String
+  points             Int         @default(20)
+
+  module           ARModule         @relation(fields: [arModuleId], references: [id], onDelete: Cascade)
+  correctComponent ARComponent      @relation("ARTaskAnswer", fields: [correctComponentId], references: [id], onDelete: Cascade)
+  responses        ARTaskResponse[]
+
+  @@index([arModuleId, phase, position])
+}
+
+/// One run of a lab's practical assessment.
+model ARPracticalAttempt {
+  id                  String          @id @default(uuid())
+  arModuleId          String
+  userId              String
+  attemptNumber       Int
+  status              ARAttemptStatus @default(IN_PROGRESS)
+  startedAt           DateTime        @default(now())
+  completedAt         DateTime?
+  durationSeconds     Int?
+  /// Points awarded out of `totalPoints`, both calculated on the server.
+  score               Float           @default(0)
+  totalPoints         Int             @default(0)
+  /// `score / totalPoints`, 0..100.
+  practicalPercentage Float           @default(0)
+  /// The theory score this was combined with, snapshotted at submission; null when
+  /// the trainee has not passed the theory assessment yet.
+  theoryPercentage    Float?
+  /// practical x (1 - theoryWeight) + theory x theoryWeight, or the practical alone
+  /// when there is no theory score. The pass mark is applied to this.
+  combinedPercentage  Float?
+  passed              Boolean         @default(false)
+  /// How many hints the trainee opened during guided training, for the trainer's view.
+  hintsUsed           Int             @default(0)
+  /// Client-generated key that makes submission safe to retry; unique per user.
+  idempotencyKey      String?
+  /// Whether this attempt moved the competency, and by how much.
+  competencyBefore    Float?
+  competencyAfter     Float?
+
+  module    ARModule         @relation(fields: [arModuleId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  responses ARTaskResponse[]
+
+  @@unique([arModuleId, userId, attemptNumber])
+  @@unique([userId, idempotencyKey])
+  @@index([userId, completedAt])
+  @@index([arModuleId, completedAt])
+}
+
+/// What the trainee chose for one assessment task.
+model ARTaskResponse {
+  id                  String  @id @default(uuid())
+  attemptId           String
+  taskId              String
+  selectedComponentId String?
+  correct             Boolean @default(false)
+  pointsAwarded       Float   @default(0)
+  /// How long the trainee took on this task, for the "hardest tasks" analysis.
+  timeMs              Int?
+
+  attempt           ARPracticalAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  task              ARTask             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  selectedComponent ARComponent?       @relation(fields: [selectedComponentId], references: [id], onDelete: SetNull)
+
+  @@unique([attemptId, taskId])
+  @@index([taskId, correct])
+}
