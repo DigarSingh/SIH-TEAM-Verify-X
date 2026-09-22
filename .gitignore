@@ -29,6 +29,9 @@ Thumbs.db
 # local agent/editor tool state (machine-specific, never shared)
 .claude/
 
+# Vercel CLI local project link/cache
+.vercel
+
 # test artefacts
 playwright-report/
 test-results/
