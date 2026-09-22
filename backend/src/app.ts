@@ -77,3 +77,56 @@ export function createApp(): Express {
   app.use(errorHandler);
   return app;
 }
+
+/**
+ * Default export for Vercel's zero-config Express detection.
+ *
+ * vercel.json's services.backend explicitly sets "entrypoint": "src/server.ts",
+ * but this deployment's own build log ("Multiple entrypoints found: src/app.ts,
+ * src/server.ts. Using src/app.ts.") showed Vercel selecting this file anyway.
+ * Rather than depend on that override taking effect, this file is made
+ * self-sufficient: Vercel's documented convention for a plain Express
+ * entrypoint is a default export of the app (see
+ * vercel.com/docs/frameworks/backend/express), which this file did not
+ * previously have - createApp() is a named export, called by server.ts and by
+ * every test, never called at this module's own top level. That gap is
+ * exactly why invoking this file as a request handler crashed: neither a
+ * callable app nor a listener was ever exported from it.
+ *
+ * server.ts (local dev, Docker, any other host) is completely unaffected: it
+ * still imports and calls createApp() itself, unchanged.
+ *
+ * Building the app can throw - most commonly env.ts's startup validation
+ * rejecting a missing or invalid production environment variable, or
+ * lib/prisma.ts failing to construct a client, since both are imported
+ * transitively through apiRouter above. Catching that failure here, exactly
+ * as server.ts already does for its own entrypoint, turns Vercel's opaque
+ * "FUNCTION_INVOCATION_FAILED" into a real, inspectable 503: the actual error
+ * goes only to the server's own logs (console.error, deliberately not the
+ * project logger, since the logger's own config could be part of what just
+ * failed to load), never into the HTTP response, so this can never leak a
+ * secret.
+ */
+function buildDefaultExport(): Express {
+  try {
+    return createApp();
+  } catch (error) {
+    console.error('[app] The application failed to start. Full error follows (server-side log only):');
+    console.error(error);
+
+    const fallback = express();
+    fallback.disable('x-powered-by');
+    const startupFailed: RequestHandler = (_req, res) => {
+      res.status(503).json({
+        success: false,
+        code: 'STARTUP_FAILED',
+        message: 'The API failed to start. Check this deployment’s function/server logs for the underlying error.',
+      });
+    };
+    fallback.get('/api/health', startupFailed);
+    fallback.use(startupFailed);
+    return fallback;
+  }
+}
+
+export default buildDefaultExport();
