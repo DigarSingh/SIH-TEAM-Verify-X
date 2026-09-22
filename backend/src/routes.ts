@@ -27,8 +27,20 @@ import { usersRouter } from './modules/users/users.routes';
 
 export const apiRouter = Router();
 
-/** Liveness + database readiness probe (used by load balancers and container orchestrators). */
-apiRouter.get('/health', async (_req, res) => {
+/**
+ * Liveness probe: proves the process is running and routes are registered,
+ * independent of the database. Deliberately touches nothing else, so it stays
+ * meaningful even when diagnosing why the API won't start at all - a check
+ * that can itself fail for a database reason cannot answer "is the function
+ * running" and "is the database reachable" as two different questions.
+ * Used by load balancers and container orchestrators for basic liveness.
+ */
+apiRouter.get('/health', (_req, res) => {
+  ok(res, { status: 'ok', uptimeSeconds: Math.round(process.uptime()) });
+});
+
+/** Liveness + database readiness probe (the same check /health used to be). */
+apiRouter.get('/health/db', async (_req, res) => {
   await prisma.$queryRaw`SELECT 1`;
   ok(res, { status: 'ok', uptimeSeconds: Math.round(process.uptime()) });
 });

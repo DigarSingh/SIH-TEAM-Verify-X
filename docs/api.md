@@ -93,7 +93,8 @@ Reachable without signing in.
 
 | Endpoint | Access | What it does |
 |---|---|---|
-| `GET /api/health` | Public | Liveness and database readiness probe (`{ status, uptimeSeconds }`). Used by load balancers and container health checks. |
+| `GET /api/health` | Public | Liveness probe only (`{ status, uptimeSeconds }`) - proves the process is running and routes are registered, independent of the database. |
+| `GET /api/health/db` | Public | Liveness and database readiness probe (`{ status, uptimeSeconds }`). Used by container health checks (see `backend/Dockerfile`). |
 | `GET /api/meta/options` | Public | PUBLIC. Everything the registration form needs: active departments and job roles, the approval policy and the password rules. It also tells the web app the upload size limit so file pickers can warn early. |
 
 ### Authentication
